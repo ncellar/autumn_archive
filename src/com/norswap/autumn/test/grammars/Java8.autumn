@@ -1,0 +1,1200 @@
+// - Originally from Mouse's Java 7 grammar.
+// - Escaped stray backslashes in a few locations ([+\-]); as well as unescaped
+//   quotes (in char classes in StringLiteral and Escape).
+// - Marked a bunch of places as tokens (:=) and removed leading spacing.
+
+//=========================================================================
+//  Compilation
+//=========================================================================
+
+Compilation
+    = CompilationUnit SUB? EOT;
+
+//=========================================================================
+//  JLS 3  Lexical Structure
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 3.1-3  Unicode
+//-------------------------------------------------------------------------
+//  The Unicode escapes in Java source are converted
+//  to Java characters by a preprocessor prior to parsing.
+//  This is not emulated here; the Unicode escapes are only allowed
+//  in string and character literals. They are treated as error in other
+//  structures (except comments). The warning in JLS 3.10.5 against using
+//  Unicode escapes for line terminators and quotes in string and character
+//  literals does not apply here.
+//-------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------
+//  JLS 3.5  Input Elements and Tokens
+//-------------------------------------------------------------------------
+
+SUB = "\u001a" ; // Ctrl + Z
+EOT = !_ ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.6-7  Spacing
+//-------------------------------------------------------------------------
+
+Spacing
+    = ( [ \t\r\n\f]+      // WhiteSpace
+      / "/*" _*+ "*/"     // TraditionalComment
+      / "//" _*+ [\r\n]   // EndOfLineComment
+      )* ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.8  Identifiers
+//-------------------------------------------------------------------------
+
+Identifier  !:= !Keyword Letter LetterOrDigit* ;
+
+Letter = [a-z] / [A-Z] / [_$] ;
+
+LetterOrDigit = [a-z] / [A-Z] / [0-9] / [_$] ;
+
+// These are traditional definitions of letters and digits.
+// JLS defines letters and digits as Unicode characters recognized
+// as such by special Java procedures, which is difficult
+// to express in terms of Parsing Expressions.
+
+//-------------------------------------------------------------------------
+//  JLS 3.9  Keywords
+//  More precisely: reserved words. According to JLS, "true", "false",
+//  and "null" are technically not keywords - but still must not appear
+//  as identifiers. Keywords "const" and "goto" are not used; JLS explains
+//  the reason.
+//-------------------------------------------------------------------------
+
+Keyword
+    = ( "abstract"
+      / "assert"
+      / "boolean"
+      / "break"
+      / "byte"
+      / "case"
+      / "catch"
+      / "char"
+      / "class"
+      / "const"
+      / "continue"
+      / "default"
+      / "double"
+      / "do"
+      / "else"
+      / "enum"
+      / "extends"
+      / "false"
+      / "finally"
+      / "final"
+      / "float"
+      / "for"
+      / "goto"
+      / "if"
+      / "implements"
+      / "import"
+      / "interface"
+      / "int"
+      / "instanceof"
+      / "long"
+      / "native"
+      / "new"
+      / "null"
+      / "package"
+      / "private"
+      / "protected"
+      / "public"
+      / "return"
+      / "short"
+      / "static"
+      / "strictfp"
+      / "super"
+      / "switch"
+      / "synchronized"
+      / "this"
+      / "throws"
+      / "throw"
+      / "transient"
+      / "true"
+      / "try"
+      / "void"
+      / "volatile"
+      / "while"
+      ) !LetterOrDigit
+    ;
+
+ABSTRACT     !:= "abstract"     !LetterOrDigit  ;
+ASSERT       !:= "assert"       !LetterOrDigit  ;
+BOOLEAN      !:= "boolean"      !LetterOrDigit  ;
+BREAK        !:= "break"        !LetterOrDigit  ;
+BYTE         !:= "byte"         !LetterOrDigit  ;
+CASE         !:= "case"         !LetterOrDigit  ;
+CATCH        !:= "catch"        !LetterOrDigit  ;
+CHAR         !:= "char"         !LetterOrDigit  ;
+CLASS        !:= "class"        !LetterOrDigit  ;
+CONTINUE     !:= "continue"     !LetterOrDigit  ;
+DEFAULT      !:= "default"      !LetterOrDigit  ;
+DOUBLE       !:= "double"       !LetterOrDigit  ;
+DO           !:= "do"           !LetterOrDigit  ;
+ELSE         !:= "else"         !LetterOrDigit  ;
+ENUM         !:= "enum"         !LetterOrDigit  ;
+EXTENDS      !:= "extends"      !LetterOrDigit  ;
+FALSE        !:= "false"        !LetterOrDigit  ;
+FINALLY      !:= "finally"      !LetterOrDigit  ;
+FINAL        !:= "final"        !LetterOrDigit  ;
+FLOAT        !:= "float"        !LetterOrDigit  ;
+FOR          !:= "for"          !LetterOrDigit  ;
+IF           !:= "if"           !LetterOrDigit  ;
+IMPLEMENTS   !:= "implements"   !LetterOrDigit  ;
+IMPORT       !:= "import"       !LetterOrDigit  ;
+INTERFACE    !:= "interface"    !LetterOrDigit  ;
+INT          !:= "int"          !LetterOrDigit  ;
+INSTANCEOF   !:= "instanceof"   !LetterOrDigit  ;
+LONG         !:= "long"         !LetterOrDigit  ;
+NATIVE       !:= "native"       !LetterOrDigit  ;
+NEW          !:= "new"          !LetterOrDigit  ;
+NULL         !:= "null"         !LetterOrDigit  ;
+PACKAGE      !:= "package"      !LetterOrDigit  ;
+PRIVATE      !:= "private"      !LetterOrDigit  ;
+PROTECTED    !:= "protected"    !LetterOrDigit  ;
+PUBLIC       !:= "public"       !LetterOrDigit  ;
+RETURN       !:= "return"       !LetterOrDigit  ;
+SHORT        !:= "short"        !LetterOrDigit  ;
+STATIC       !:= "static"       !LetterOrDigit  ;
+STRICTFP     !:= "strictfp"     !LetterOrDigit  ;
+SUPER        !:= "super"        !LetterOrDigit  ;
+SWITCH       !:= "switch"       !LetterOrDigit  ;
+SYNCHRONIZED !:= "synchronized" !LetterOrDigit  ;
+THIS         !:= "this"         !LetterOrDigit  ;
+THROWS       !:= "throws"       !LetterOrDigit  ;
+THROW        !:= "throw"        !LetterOrDigit  ;
+TRANSIENT    !:= "transient"    !LetterOrDigit  ;
+TRUE         !:= "true"         !LetterOrDigit  ;
+TRY          !:= "try"          !LetterOrDigit  ;
+VOID         !:= "void"         !LetterOrDigit  ;
+VOLATILE     !:= "volatile"     !LetterOrDigit  ;
+WHILE        !:= "while"        !LetterOrDigit  ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10  Literals
+//-------------------------------------------------------------------------
+
+Literal
+    = FloatLiteral
+    / IntegerLiteral          // May be a prefix of FloatLiteral
+    / BooleanLiteral
+    / CharLiteral
+    / StringLiteral
+    / NullLiteral
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10.1  Integer Literals
+//-------------------------------------------------------------------------
+
+IntegerLiteral
+    !:= ( HexNumeral
+      / BinaryNumeral
+      / OctalNumeral            // May be a prefix of HexNumeral or BinaryNumeral
+      / DecimalNumeral          // May be a prefix of OctalNumeral
+      ) [lL]?
+    ;
+
+DecimalNumeral
+    = "0"
+    / [1-9]([_]*[0-9])*
+    ;
+
+HexNumeral
+    = ("0x" / "0X") HexDigits ;
+
+OctalNumeral
+    = "0" ([_]*[0-7])+ ;
+
+BinaryNumeral
+    = ("0b" / "0B") [01]([_]*[01])* ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10.2  Floatng-point Literals
+//-------------------------------------------------------------------------
+
+FloatLiteral
+    !:= ( HexadecimalFloatingPointLiteral
+      / DecimalFloatingPointLiteral   // May be a prefix of above
+      )
+    ;
+
+DecimalFloatingPointLiteral
+    = Digits "." Digits?  Exponent? [fFdD]?
+    / "." Digits Exponent? [fFdD]?
+    / Digits Exponent [fFdD]?
+    / Digits Exponent? [fFdD]
+    ;
+
+Exponent
+    = [eE] [+\\-]? Digits ;
+
+HexadecimalFloatingPointLiteral
+    = HexSignificand BinaryExponent [fFdD]? ;
+
+HexSignificand
+    = ("0x" / "0X") HexDigits? "." HexDigits
+    / HexNumeral "."?                           // May be a prefix of above
+    ;
+
+HexDigits
+    = HexDigit ([_]*HexDigit)* ;
+
+HexDigit
+    = [a-f] / [A-F] / [0-9] ;
+
+BinaryExponent
+    = [pP] [+\\-]? Digits ;
+
+Digits
+    = [0-9]([_]*[0-9])* ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10.3  Boolean Literals
+//-------------------------------------------------------------------------
+
+BooleanLiteral
+    = TRUE
+    / FALSE
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10.4  Character Literals
+//-------------------------------------------------------------------------
+
+CharLiteral
+    !:= "'" (Escape / !['\\\n\r] _) "'"
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10.5 String Literals
+//-------------------------------------------------------------------------
+
+StringLiteral
+    !:= "\"" (Escape / ![\"\\\n\r] _)* "\""
+    ;
+
+Escape
+    = "\\" ([btnfr\"'\\] / OctalEscape / UnicodeEscape)
+    ;
+
+OctalEscape
+    = [0-3][0-7][0-7]
+    / [0-7][0-7]
+    / [0-7]
+    ;
+
+UnicodeEscape
+    = "u"+ HexDigit HexDigit HexDigit HexDigit ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10.6 The Null literal
+//-------------------------------------------------------------------------
+
+NullLiteral = NULL ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.11  Separators
+//-------------------------------------------------------------------------
+
+'@'    :=   "@"        ;
+'::'   :=   "::"       ;
+','    :=   ","        ;
+'.'    :=   "."        ;
+'...'  :=   "..."      ;
+'('    :=   "("        ;
+'['    :=   "["        ;
+']'    :=   "]"        ;
+')'    :=   ")"        ;
+'{'    :=   "{"        ;
+'}'    :=   "}"        ;
+';'    :=   ";"        ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.12  Operators
+//  The operators < and > is defined uder two names:
+//  LT and GT, respectively LPOINT and RPOINT.
+//  The last two are used in the type context, to emulate the translation
+//  rule given in JLS 3.2.
+//-------------------------------------------------------------------------
+
+AND             :=   "&" ![=&]   ;
+ANDAND          :=   "&&"        ;
+ANDEQU          :=   "&="        ;
+ARROW           :=   "->"        ;
+BANG            :=   "!" ![=]    ;
+BSR             :=   ">>>" ![=]  ;
+BSREQU          :=   ">>>="      ;
+COLON           :=   ":" ![:]    ;
+DEC             :=   "--"        ;
+DIV             :=   "/" ![=]    ;
+DIVEQU          :=   "/="        ;
+EQU             :=   "=" ![=]    ;
+EQUAL           :=   "=="        ;
+GE              :=   ">="        ;
+GT              :=   ">" ![=>]   ;
+HAT             :=   "^" ![=]    ;
+HATEQU          :=   "^="        ;
+INC             :=   "++"        ;
+LE              :=   "<="        ;
+LPOINT          :=   "<"         ;
+LT              :=   "<" ![=<]   ;
+MINUS           :=   "-" ![=\->] ;
+MINUSEQU        :=   "-="        ;
+MOD             :=   "%" ![=]    ;
+MODEQU          :=   "%="        ;
+NOTEQUAL        :=   "!="        ;
+OR              :=   "|" ![=|]   ;
+OREQU           :=   "|="        ;
+OROR            :=   "||"        ;
+PLUS            :=   "+" ![=+]   ;
+PLUSEQU         :=   "+="        ;
+QUERY           :=   "?"         ;
+RPOINT          :=   ">"         ;
+SL              :=   "<<" ![=]   ;
+SLEQU           :=   "<<="       ;
+SR              :=   ">>" ![=>]  ;
+SREQU           :=   ">>="       ;
+STAR            :=   "*" ![=]    ;
+STAREQU         :=   "*="        ;
+TILDE           :=   "~"         ;
+
+
+//=========================================================================
+//  JLS 4  Types, Values and Variables
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 4.2  Primitive Types and Values
+//-------------------------------------------------------------------------
+
+BasicType
+    = BYTE
+    / SHORT
+    / INT
+    / LONG
+    / CHAR
+    / FLOAT
+    / DOUBLE
+    / BOOLEAN
+    ;
+
+PrimitiveType
+    = Annotation* BasicType ;
+
+//-------------------------------------------------------------------------
+//  JLS 4.3  Reference Types and Values
+//-------------------------------------------------------------------------
+
+ReferenceType
+    = PrimitiveType Dim+
+    / ClassType Dim*
+    ;
+
+ClassType
+    = Annotation* Identifier TypeArguments?
+          ('.' Annotation* Identifier TypeArguments?)* ;
+
+Type
+    = PrimitiveType
+    / ClassType
+    ;
+
+ArrayType
+    = PrimitiveType Dim+
+    / ClassType Dim+
+    ;
+
+TypeVariable
+    = Annotation* Identifier ;
+
+Dim
+    = Annotation* '[' ']' ;
+
+//-------------------------------------------------------------------------
+//  JLS 4.4  Type Variables
+//-------------------------------------------------------------------------
+
+TypeParameter
+    = TypeParameterModifier* Identifier TypeBound? ;
+
+TypeParameterModifier
+    = Annotation ;
+
+TypeBound
+    = EXTENDS (ClassType AdditionalBound* / TypeVariable) ;
+
+AdditionalBound
+    = AND ClassType ;
+
+//-------------------------------------------------------------------------
+//  JLS 4.5  Parametrized Types
+//-------------------------------------------------------------------------
+
+TypeArguments
+    = LPOINT TypeArgumentList RPOINT ;
+
+TypeArgumentList
+    = TypeArgument (',' TypeArgument)* ;
+
+TypeArgument
+    = ReferenceType
+    / Wildcard
+    ;
+
+Wildcard
+    = Annotation* QUERY WildcardBounds? ;
+
+WildcardBounds
+    = EXTENDS ReferenceType
+    / SUPER ReferenceType
+    ;
+
+
+//=========================================================================
+//  JLS 6  Names
+//=========================================================================
+
+QualIdent
+    = Identifier ('.' Identifier)* ;
+
+
+//=========================================================================
+//  JLS 7  Packages
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 7.3  Compilation Units
+//-------------------------------------------------------------------------
+
+CompilationUnit
+    = PackageDeclaration? ImportDeclaration* TypeDeclaration* ;
+
+//-------------------------------------------------------------------------
+//  JLS 7.4  Package Declarations
+//-------------------------------------------------------------------------
+
+PackageDeclaration
+    = PackageModifier* PACKAGE Identifier ('.' Identifier)* ';' ;
+
+PackageModifier
+    = Annotation ;
+
+//-------------------------------------------------------------------------
+//  JLS 7.5  Import Declarations
+//-------------------------------------------------------------------------
+
+ImportDeclaration
+    = IMPORT STATIC? QualIdent ('.' STAR)? ';'
+    / ';'
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 7.6  Top Level Type Declarations
+//-------------------------------------------------------------------------
+
+TypeDeclaration
+    = ClassDeclaration
+    / InterfaceDeclaration
+    / ';'
+    ;
+
+
+//=========================================================================
+//  JLS 8  Classes
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 8.1  Class Declarations
+//-------------------------------------------------------------------------
+
+ClassDeclaration
+    = NormalClassDeclaration
+    / EnumDeclaration
+    ;
+
+NormalClassDeclaration
+    = ClassModifier* CLASS Identifier TypeParameters?
+          Superclass? Superinterfaces? ClassBody
+    ;
+
+ClassModifier
+    = Annotation
+    / PUBLIC
+    / PROTECTED
+    / PRIVATE
+    / ABSTRACT
+    / STATIC
+    / FINAL
+    / STRICTFP
+    ;
+
+TypeParameters
+    = LPOINT TypeParameterList RPOINT ;
+
+TypeParameterList
+    = TypeParameter (',' TypeParameter)* ;
+
+Superclass
+    = EXTENDS ClassType ;
+
+Superinterfaces
+    = IMPLEMENTS InterfaceTypeList ;
+
+InterfaceTypeList
+    = ClassType (',' ClassType)* ;
+
+ClassBody
+    = '{' ClassBodyDeclaration* '}' ;
+
+ClassBodyDeclaration
+    = ClassMemberDeclaration
+    / InstanceInitializer
+    / StaticInitializer
+    / ConstructorDeclaration
+    ;
+
+ClassMemberDeclaration
+    = FieldDeclaration
+    / MethodDeclaration
+    / ClassDeclaration
+    / InterfaceDeclaration
+    / ';'
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 8.3  Field Declarations
+//-------------------------------------------------------------------------
+
+FieldDeclaration
+    = FieldModifier* UnannType VariableDeclaratorList ';' ;
+
+VariableDeclaratorList
+    = VariableDeclarator (',' VariableDeclarator)* ;
+
+VariableDeclarator
+    = VariableDeclaratorId (EQU VariableInitializer)? ;
+
+VariableDeclaratorId
+    = Identifier Dim* ;
+
+VariableInitializer
+    = Expression
+    / ArrayInitializer
+    ;
+
+UnannClassType
+    = Identifier TypeArguments?
+          ('.' Annotation* Identifier TypeArguments?)*  ;
+
+UnannType
+    = BasicType Dim*
+    / UnannClassType Dim*
+    ;
+
+FieldModifier
+    = Annotation
+    / PUBLIC
+    / PROTECTED
+    / PRIVATE
+    / STATIC
+    / FINAL
+    / TRANSIENT
+    / VOLATILE
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 8.4  Method Declarations
+//-------------------------------------------------------------------------
+
+MethodDeclaration
+    = MethodModifier* MethodHeader MethodBody ;
+
+MethodHeader
+    = Result MethodDeclarator Throws?
+    / TypeParameters Annotation* Result MethodDeclarator Throws?
+    ;
+
+MethodDeclarator
+    = Identifier '(' FormalParameterList? ')' Dim* ;
+
+FormalParameterList
+    = (ReceiverParameter / FormalParameter)(',' FormalParameter)* ;
+
+FormalParameter
+    = VariableModifier* UnannType VariableDeclaratorId
+    / VariableModifier* UnannType Annotation* '...' VariableDeclaratorId !','
+    ;
+
+VariableModifier
+    = Annotation
+    / FINAL
+    ;
+
+ReceiverParameter
+    = VariableModifier* UnannType (Identifier '.')? THIS ;
+
+Result
+    = UnannType
+    / VOID
+    ;
+
+MethodModifier
+    = Annotation
+    / PUBLIC
+    / PROTECTED
+    / PRIVATE
+    / ABSTRACT
+    / STATIC
+    / FINAL
+    / SYNCHRONIZED
+    / NATIVE
+    / STRICTFP
+    ;
+
+Throws
+    = THROWS ExceptionTypeList ;
+
+ExceptionTypeList
+    = ExceptionType (',' ExceptionType)* ;
+
+ExceptionType
+    = ClassType
+    / TypeVariable
+    ;
+
+MethodBody
+    = Block
+    / ';'
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 8.6  Instance Initializers
+//-------------------------------------------------------------------------
+
+InstanceInitializer
+    = Block ;
+
+//-------------------------------------------------------------------------
+//  JLS 8.7  Static Initializers
+//-------------------------------------------------------------------------
+
+StaticInitializer
+    = STATIC Block ;
+
+//-------------------------------------------------------------------------
+//  JLS 8.8  Constructor Declarations
+//-------------------------------------------------------------------------
+
+ConstructorDeclaration
+    = ConstructorModifier* ConstructorDeclarator Throws? ConstructorBody ;
+
+ConstructorDeclarator
+    = TypeParameters? Identifier '(' FormalParameterList? ')' ;
+
+ConstructorModifier
+    = Annotation
+    / PUBLIC
+    / PROTECTED
+    / PRIVATE
+    ;
+
+ConstructorBody
+    = '{' ExplicitConstructorInvocation? BlockStatements? '}' ;
+
+ExplicitConstructorInvocation
+    = TypeArguments? THIS Arguments ';'
+    / TypeArguments? SUPER Arguments ';'
+
+    // http://stackoverflow.com/questions/2831484
+
+    / Expression '.' TypeArguments? SUPER Arguments ';'
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 8.9  Enum Types
+//-------------------------------------------------------------------------
+
+EnumDeclaration
+    = ClassModifier* ENUM Identifier Superinterfaces? EnumBody ;
+
+EnumBody
+    = '{' EnumConstantList? ','? EnumBodyDeclarations? '}' ;
+
+EnumConstantList
+    = EnumConstant (',' EnumConstant)* ;
+
+EnumConstant
+    = EnumConstantModifier* Identifier Arguments? ClassBody? ;
+
+EnumConstantModifier
+    = Annotation ;
+
+EnumBodyDeclarations
+    = ';' ClassBodyDeclaration* ;
+
+
+//=========================================================================
+//  JLS 9  Interfaces
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 9.1  Interface Declarations
+//-------------------------------------------------------------------------
+
+InterfaceDeclaration
+    = NormalInterfaceDeclaration
+    / AnnotationTypeDeclaration
+    ;
+
+NormalInterfaceDeclaration
+    = InterfaceModifier* INTERFACE Identifier TypeParameters?
+          ExtendsInterfaces? InterfaceBody ;
+
+InterfaceModifier
+    = Annotation
+    / PUBLIC
+    / PROTECTED
+    / PRIVATE
+    / ABSTRACT
+    / STATIC
+    / STRICTFP
+    ;
+
+ExtendsInterfaces
+    = EXTENDS InterfaceTypeList ;
+
+InterfaceBody
+    = '{' InterfaceMemberDeclaration* '}' ;
+
+InterfaceMemberDeclaration
+    = ConstantDeclaration
+    / InterfaceMethodDeclaration
+    / ClassDeclaration
+    / InterfaceDeclaration
+    / ';'
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 9.3  Field (Constant) Declarations
+//-------------------------------------------------------------------------
+
+ConstantDeclaration
+    = ConstantModifier* UnannType VariableDeclaratorList ';' ;
+
+ConstantModifier
+    = Annotation
+    / PUBLIC
+    / STATIC
+    / FINAL
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 9.4  Method Declarations
+//-------------------------------------------------------------------------
+
+InterfaceMethodDeclaration
+    = InterfaceMethodModifier* MethodHeader MethodBody ;
+
+InterfaceMethodModifier
+    = Annotation
+    / PUBLIC
+    / ABSTRACT
+    / DEFAULT
+    / STATIC
+    / STRICTFP
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 9.6  Annotation types
+//-------------------------------------------------------------------------
+
+AnnotationTypeDeclaration
+    = InterfaceModifier* '@' INTERFACE Identifier AnnotationTypeBody ;
+
+AnnotationTypeBody
+    = '{' AnnotationTypeMemberDeclaration* '}' ;
+
+AnnotationTypeMemberDeclaration
+    = AnnotationTypeElementDeclaration
+    / ConstantDeclaration
+    / ClassDeclaration
+    / InterfaceDeclaration
+    / ';'
+    ;
+
+AnnotationTypeElementDeclaration
+    = AnnotationTypeElementModifier* UnannType Identifier '(' ')' Dim*
+         DefaultValue? ';' ;
+
+AnnotationTypeElementModifier
+    = Annotation
+    / PUBLIC
+    / ABSTRACT
+    ;
+
+DefaultValue
+    = DEFAULT ElementValue ;
+
+//-------------------------------------------------------------------------
+//  JLS 9.7  Annotations
+//-------------------------------------------------------------------------
+
+Annotation
+    = '@'
+      ( NormalAnnotation
+      / SingleElementAnnotation
+      / MarkerAnnotation
+      )
+    ;
+
+NormalAnnotation
+    = QualIdent '(' ElementValuePairList* ')' ;
+
+ElementValuePairList
+    = ElementValuePair (',' ElementValuePair)* ;
+
+ElementValuePair
+    = Identifier EQU ElementValue ;
+
+ElementValue
+    = Expression forbid { assign }
+    / ElementValueArrayInitializer
+    / Annotation
+    ;
+
+ElementValueArrayInitializer
+    = '{' ElementValueList? ','? '}' ;
+
+ElementValueList
+    = ElementValue (',' ElementValue)* ;
+
+MarkerAnnotation
+    = QualIdent ;
+
+SingleElementAnnotation
+    = QualIdent '(' ElementValue ')' ;
+
+
+//=========================================================================
+//  JLS 10  Arrays
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 10.6  Array Initializers
+//-------------------------------------------------------------------------
+
+ArrayInitializer
+    = '{' VariableInitializerList? ','? '}' ;
+
+VariableInitializerList
+    = VariableInitializer (',' VariableInitializer)* ;
+
+//=========================================================================
+//  JLS 14  Blocks and Statements
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 14.2 Blocks
+//-------------------------------------------------------------------------
+
+Block
+    = '{' BlockStatements? '}' ;
+
+BlockStatements
+    = BlockStatement BlockStatement* ;
+
+BlockStatement
+    = LocalVariableDeclarationStatement
+    / ClassDeclaration
+    / Statement
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 14.4  Local Variable Declaration Statements
+//-------------------------------------------------------------------------
+
+LocalVariableDeclarationStatement
+    = LocalVariableDeclaration ';' ;
+
+LocalVariableDeclaration
+    = VariableModifier* UnannType VariableDeclaratorList ;
+
+//-------------------------------------------------------------------------
+//  JLS 14.5  Statements
+//-------------------------------------------------------------------------
+
+Statement
+    = Block
+    / IF ParExpression Statement (ELSE Statement)?
+    / BasicForStatement
+    / EnhancedForStatement
+    / WHILE ParExpression Statement
+    / DO Statement WHILE ParExpression ';'
+    / TryStatement
+    / SWITCH ParExpression SwitchBlock
+    / SYNCHRONIZED ParExpression Block
+    / RETURN Expression? ';'
+    / THROW Expression ';'
+    / BREAK Identifier? ';'
+    / CONTINUE Identifier? ';'
+    / ASSERT Expression (COLON Expression)? ';'
+    / ';'
+    / StatementExpression ';'
+    / Identifier COLON Statement
+    ;
+
+ParExpression
+    = '(' Expression ')' ;
+
+//-------------------------------------------------------------------------
+//  JLS 14.11  The SWITCH Statement
+//-------------------------------------------------------------------------
+
+SwitchBlock
+    = '{' SwitchBlockStatementGroup* SwitchLabel* '}' ;
+
+SwitchBlockStatementGroup
+    = SwitchLabels BlockStatements ;
+
+SwitchLabels
+    = SwitchLabel SwitchLabel* ;
+
+SwitchLabel
+    = CASE (Expression / EnumConstantName) COLON
+    / DEFAULT COLON
+    ;
+
+EnumConstantName
+    = Identifier ;
+
+//-------------------------------------------------------------------------
+//  JLS 14.14  The FOR Statement
+//-------------------------------------------------------------------------
+
+BasicForStatement
+    = FOR '(' ForInit? ';' Expression? ';' ForUpdate? ')' Statement ;
+
+ForInit
+    = LocalVariableDeclaration
+    / StatementExpressionList
+    ;
+
+ForUpdate
+    = StatementExpressionList ;
+
+StatementExpressionList
+    = StatementExpression (','  StatementExpression)* ;
+
+EnhancedForStatement
+    = FOR '(' VariableModifier* UnannType VariableDeclaratorId COLON
+          Expression ')' Statement ;
+
+//-------------------------------------------------------------------------
+//  JLS 14.20  The TRY Statement
+//-------------------------------------------------------------------------
+
+TryStatement
+    = TRY
+      ( Block (CatchClause* Finally / CatchClause+)
+      / ResourceSpecification Block CatchClause* Finally?
+      )
+    ;
+
+CatchClause
+    = CATCH '(' CatchFormalParameter ')' Block ;
+
+CatchFormalParameter
+    = VariableModifier* CatchType VariableDeclaratorId ;
+
+CatchType
+    = UnannClassType (OR ClassType)* ;
+
+Finally
+    = FINALLY Block ;
+
+ResourceSpecification
+    = '(' ResourceList ';'? ')' ;
+
+ResourceList
+    = Resource (';' Resource)* ;
+
+Resource
+    = VariableModifier* UnannType VariableDeclaratorId EQU Expression ;
+
+
+//=========================================================================
+//  JLS 15  Expressions
+//=========================================================================
+
+//-------------------------------------------------------------------------
+//  JLS 15.9  Class Instance Creation Expressions
+//-------------------------------------------------------------------------
+
+ClassCreator
+    = TypeArguments? Annotation* ClassTypeWithDiamond
+          Arguments ClassBody? ;
+
+ClassTypeWithDiamond
+    = Annotation* Identifier TypeArgumentsOrDiamond?
+          ('.' Annotation* Identifier TypeArgumentsOrDiamond?)* ;
+
+TypeArgumentsOrDiamond
+    = TypeArguments
+    / LPOINT RPOINT !'.'  // Must be last
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 15.10  Array Creation and Access Expressions
+//-------------------------------------------------------------------------
+
+ArrayCreator
+    = Type DimExpr+ Dim*
+    / Type Dim+ ArrayInitializer
+    ;
+
+DimExpr
+    = Annotation* '[' Expression ']' ;
+
+//-------------------------------------------------------------------------
+//  JLS 15.12  Method Invocation Expressions
+//-------------------------------------------------------------------------
+
+Arguments
+    = '(' ArgumentList? ')' ;
+
+ArgumentList
+    = Expression (',' Expression)* ;
+
+//-------------------------------------------------------------------------
+//  JLS 15.27  Lambda Expressions
+//-------------------------------------------------------------------------
+
+LambdaExpression
+    = LambdaParameters ARROW LambdaBody ;
+
+LambdaParameters
+    = Identifier
+    / '(' FormalParameterList? ')'
+    / '(' InferredFormalParameterList ')'
+    ;
+
+InferredFormalParameterList
+    = Identifier (',' Identifier)* ;
+
+LambdaBody
+    = Expression
+    / Block
+    ;
+
+// ===============================================================================
+
+Expression = expr
+
+    -> Assignment               @+ @left_recur @assign
+    -> LambdaExpression         @=
+    -> ConditionalExpression    @+ @left_recur
+
+    // BINARY OPERATORS
+
+    -> Expression OROR       Expression @+ @left_assoc
+    -> Expression ANDAND     Expression @+ @left_assoc
+    -> Expression OR         Expression @+ @left_assoc
+    -> Expression HAT        Expression @+ @left_assoc
+    -> Expression AND        Expression @+ @left_assoc
+
+    -> Expression EQUAL      Expression @+ @left_assoc
+    -> Expression NOTEQUAL   Expression @=
+
+    -> Expression LE         Expression @+ @left_assoc
+    -> Expression GE         Expression @=
+    -> Expression LT         Expression @=
+    -> Expression GT         Expression @=
+    -> Expression INSTANCEOF Expression @=
+
+    -> Expression SL         Expression @+ @left_assoc
+    -> Expression SR         Expression @=
+    -> Expression BSR        Expression @=
+
+    -> Expression PLUS       Expression @+ @left_assoc
+    -> Expression MINUS      Expression @=
+
+    -> Expression STAR       Expression @+ @left_assoc
+    -> Expression DIV        Expression @=
+    -> Expression MOD        Expression @=
+
+    // PREFIX OPERATORS
+
+    -> INC   Expression @+ @binc
+    -> DEC   Expression @= @bdec
+    -> PLUS  Expression @=
+    -> MINUS Expression @=
+    -> TILDE Expression @=
+    -> BANG  Expression @=
+    -> CastExpression   @= // does not conflict with (expr)(arguments) because lower precedence
+
+    // POSTFIX EXPRESSIONS
+
+    -> Expression INC                                           @+ @left_assoc @ainc
+    -> Expression DEC                                           @= @adec
+    -> Expression '.' TypeArguments Identifier drop Arguments   @= @tmcall
+    -> Expression drop Arguments                                @= @mcall
+    -> Expression '.' Identifier                                @= @dot_iden
+    -> Expression '.' NEW drop ClassCreator                     @=
+    -> Expression '.' THIS                                      @=
+    -> Expression '.' SUPER                                     @=
+    -> Expression '.' CLASS                                     @=
+    -> Expression '[' drop Expression ']'                       @= @array_access
+    -> Expression '::' TypeArguments? Identifier                @=
+    -> Expression '::' TypeArguments? NEW                       @=
+
+    // POSTFIX TYPES
+
+    -> Expression TypeArguments  @=
+    -> Expression '[' ']'        @=
+
+    // PRIMARY EXPRESSIONS
+
+    -> '(' drop Expression ')'                  @+
+    -> THIS Arguments                           @=
+    -> THIS                                     @=
+    -> SUPER Arguments                          @=
+    -> SUPER                                    @=
+    -> NEW drop ClassCreator                    @= @ccall
+    -> NEW drop ArrayCreator                    @=
+    -> Identifier                               @= @iden
+    -> Literal                                  @=
+
+    // PRIMARY TYPES
+
+    -> BasicType    @=
+    -> VOID         @=
+    ;
+
+ConditionalExpression
+    = Expression QUERY drop Expression COLON (LambdaExpression / Expression) ;
+
+CastExpression
+    = '(' (ReferenceType AdditionalBound* / PrimitiveType) ')' (LambdaExpression / Expression) ;
+
+Assignment
+    = LValue AssignmentOperator Expression ;
+
+LValue
+    = Expression allow { iden, dot_iden, array_access } ;
+
+AssignmentOperator
+    = EQU
+    / STAREQU
+    / DIVEQU
+    / MODEQU
+    / PLUSEQU
+    / MINUSEQU
+    / SLEQU
+    / SREQU
+    / BSREQU
+    / ANDEQU
+    / HATEQU
+    / OREQU
+    ;
+
+StatementExpression
+    = Expression allow { assign, binc, bdec, ainc, adec, mcall, tmcall, ccall } ;

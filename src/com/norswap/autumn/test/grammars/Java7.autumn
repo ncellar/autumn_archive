@@ -1,0 +1,981 @@
+// - Originally from Mouse's Java 7 grammar.
+// - Escaped stray backslashes in a few locations ([+\-]); as well as unescaped
+//   quotes (in char classes in StringLiteral and Escape).
+// - Marked a bunch of places as tokens (:=) and removed leading spacing.
+
+//-------------------------------------------------------------------------
+//  Compilation Unit
+//-------------------------------------------------------------------------
+
+CompilationUnit
+    = PackageDeclaration? ImportDeclaration* TypeDeclaration*
+    ;
+
+PackageDeclaration
+    = Annotation* PACKAGE QualifiedIdentifier SEMI
+    ;
+
+ImportDeclaration
+    = IMPORT STATIC? QualifiedIdentifier (DOT STAR)? SEMI;
+
+TypeDeclaration
+    = Modifier*
+      ( ClassDeclaration
+      / EnumDeclaration
+      / InterfaceDeclaration
+      / AnnotationTypeDeclaration
+      )
+    / SEMI
+    ;
+
+//-------------------------------------------------------------------------
+//  Class Declaration
+//-------------------------------------------------------------------------
+
+ClassDeclaration
+    = CLASS Identifier TypeParameters? (EXTENDS ClassType)? (IMPLEMENTS ClassTypeList)? ClassBody
+    ;
+
+ClassBody
+    = LWING ClassBodyDeclaration* RWING
+    ;
+
+ClassBodyDeclaration
+    = SEMI
+    / STATIC? Block                                    // Static or Instance Initializer
+    / Modifier* MemberDecl                             // ClassMemberDeclaration
+    ;
+
+MemberDecl
+    = TypeParameters GenericMethodOrConstructorRest    // Generic Method or Constructor
+    / Type Identifier MethodDeclaratorRest             // Method
+    / Type VariableDeclarators SEMI                    // Field
+    / VOID Identifier VoidMethodDeclaratorRest         // Void method
+    / Identifier ConstructorDeclaratorRest             // Constructor
+    / InterfaceDeclaration                             // Interface
+    / ClassDeclaration                                 // Class
+    / EnumDeclaration                                  // Enum
+    / AnnotationTypeDeclaration                        // Annotation
+    ;
+
+GenericMethodOrConstructorRest
+    = (Type / VOID) Identifier MethodDeclaratorRest
+    / Identifier ConstructorDeclaratorRest
+    ;
+
+MethodDeclaratorRest
+    = FormalParameters Dim* (THROWS ClassTypeList)? (MethodBody / SEMI)
+    ;
+
+VoidMethodDeclaratorRest
+    = FormalParameters (THROWS ClassTypeList)? (MethodBody / SEMI)
+    ;
+
+ConstructorDeclaratorRest
+    = FormalParameters (THROWS ClassTypeList)? MethodBody
+    ;
+
+MethodBody
+    = Block
+    ;
+
+//-------------------------------------------------------------------------
+//  Interface Declaration
+//-------------------------------------------------------------------------
+
+InterfaceDeclaration
+    = INTERFACE Identifier TypeParameters? (EXTENDS ClassTypeList)? InterfaceBody
+    ;
+
+InterfaceBody
+    = LWING InterfaceBodyDeclaration* RWING
+    ;
+
+InterfaceBodyDeclaration
+    = Modifier* InterfaceMemberDecl
+    / SEMI
+    ;
+
+InterfaceMemberDecl
+    = InterfaceMethodOrFieldDecl
+    / InterfaceGenericMethodDecl
+    / VOID Identifier VoidInterfaceMethodDeclaratorRest
+    / InterfaceDeclaration
+    / AnnotationTypeDeclaration
+    / ClassDeclaration
+    / EnumDeclaration
+    ;
+
+InterfaceMethodOrFieldDecl
+    = Type Identifier InterfaceMethodOrFieldRest
+    ;
+
+InterfaceMethodOrFieldRest
+    = ConstantDeclaratorsRest SEMI
+    / InterfaceMethodDeclaratorRest
+    ;
+
+InterfaceMethodDeclaratorRest
+    = FormalParameters Dim* (THROWS ClassTypeList)? SEMI
+    ;
+
+InterfaceGenericMethodDecl
+    = TypeParameters (Type / VOID) Identifier InterfaceMethodDeclaratorRest
+    ;
+
+VoidInterfaceMethodDeclaratorRest
+    = FormalParameters (THROWS ClassTypeList)? SEMI
+    ;
+
+ConstantDeclaratorsRest
+    = ConstantDeclaratorRest (COMMA ConstantDeclarator)*
+    ;
+
+ConstantDeclarator
+    = Identifier ConstantDeclaratorRest
+    ;
+
+ConstantDeclaratorRest
+    = Dim* EQU VariableInitializer
+    ;
+
+//-------------------------------------------------------------------------
+//  Enum Declaration
+//-------------------------------------------------------------------------
+
+EnumDeclaration
+    = ENUM Identifier (IMPLEMENTS ClassTypeList)? EnumBody
+    ;
+
+EnumBody
+    = LWING EnumConstants? COMMA? EnumBodyDeclarations? RWING
+    ;
+
+EnumConstants
+    = EnumConstant (COMMA EnumConstant)*
+    ;
+
+EnumConstant
+    = Annotation* Identifier Arguments? ClassBody?
+    ;
+
+EnumBodyDeclarations
+    = SEMI ClassBodyDeclaration*
+    ;
+
+//-------------------------------------------------------------------------
+//  Variable Declarations
+//-------------------------------------------------------------------------
+
+LocalVariableDeclarationStatement
+    = (FINAL / Annotation)* Type VariableDeclarators SEMI
+    ;
+
+VariableDeclarators
+    = VariableDeclarator (COMMA VariableDeclarator)*
+    ;
+
+VariableDeclarator
+    = Identifier Dim* (EQU VariableInitializer)?
+    ;
+
+//-------------------------------------------------------------------------
+//  Formal Parameters
+//-------------------------------------------------------------------------
+
+FormalParameters
+    = LPAR FormalParameterList? RPAR
+    ;
+
+FormalParameter
+    = (FINAL / Annotation)* Type VariableDeclaratorId
+    ;
+
+LastFormalParameter
+    = (FINAL / Annotation)* Type ELLIPSIS VariableDeclaratorId
+    ;
+
+FormalParameterList
+    = FormalParameter (COMMA FormalParameter)* (COMMA LastFormalParameter)?
+    / LastFormalParameter
+    ;
+
+VariableDeclaratorId
+    = Identifier Dim*
+    ;
+
+//-------------------------------------------------------------------------
+//  Statements
+//-------------------------------------------------------------------------
+
+Block
+    = LWING BlockStatements RWING
+    ;
+
+BlockStatements
+    = BlockStatement*
+    ;
+
+BlockStatement
+    = LocalVariableDeclarationStatement
+    / Modifier*
+      ( ClassDeclaration
+      / EnumDeclaration
+      )
+    / Statement
+    ;
+
+Statement
+    = Block
+    / ASSERT Expression (COLON Expression)? SEMI
+    / IF ParExpression Statement (ELSE Statement)?
+    / FOR LPAR ForInit? SEMI Expression? SEMI ForUpdate? RPAR Statement
+    / FOR LPAR FormalParameter COLON Expression RPAR Statement
+    / WHILE ParExpression Statement
+    / DO Statement WHILE ParExpression   SEMI
+    / TRY LPAR Resource (SEMI Resource)* SEMI? RPAR Block Catch* Finally?
+    / TRY Block (Catch+ Finally? / Finally)
+    / SWITCH ParExpression LWING SwitchBlockStatementGroups RWING
+    / SYNCHRONIZED ParExpression Block
+    / RETURN Expression? SEMI
+    / THROW Expression   SEMI
+    / BREAK Identifier? SEMI
+    / CONTINUE Identifier? SEMI
+    / SEMI
+    / StatementExpression SEMI
+    / Identifier COLON Statement
+    ;
+
+Resource
+    = (FINAL / Annotation)* Type VariableDeclaratorId EQU Expression
+    ;
+
+Catch
+    = CATCH LPAR (FINAL / Annotation)* Type (OR Type)* VariableDeclaratorId RPAR Block
+    ;
+
+Finally
+    = FINALLY Block
+    ;
+
+SwitchBlockStatementGroups
+    = SwitchBlockStatementGroup*
+    ;
+
+SwitchBlockStatementGroup
+    = SwitchLabel BlockStatements
+    ;
+
+SwitchLabel
+    = CASE ConstantExpression COLON
+    / CASE EnumConstantName COLON
+    / DEFAULT COLON
+    ;
+
+ForInit
+    = (FINAL / Annotation)* Type VariableDeclarators
+    / StatementExpression (COMMA StatementExpression)*
+    ;
+
+ForUpdate
+    = StatementExpression (COMMA StatementExpression)*
+    ;
+
+EnumConstantName
+    = Identifier
+    ;
+
+//-------------------------------------------------------------------------
+//  Expressions
+//-------------------------------------------------------------------------
+
+StatementExpression
+    = Expression
+    ;
+
+    // This is more generous than definition in section 14.8, which allows only
+    // specific forms of Expression.
+
+
+ConstantExpression
+    = Expression
+    ;
+
+Expression
+    = ConditionalExpression (AssignmentOperator ConditionalExpression)*
+    ;
+
+    // This definition is part of the modification in JLS Chapter 18
+    // to minimize look ahead. In JLS Chapter 15.27, Expression is defined
+    // as AssignmentExpression, which is effectively defined as
+    // (LeftHandSide AssignmentOperator)* ConditionalExpression.
+    // The above is obtained by allowing ANY ConditionalExpression
+    // as LeftHandSide, which results in accepting statements like 5 = a.
+
+
+AssignmentOperator
+    = EQU
+    / PLUSEQU
+    / MINUSEQU
+    / STAREQU
+    / DIVEQU
+    / ANDEQU
+    / OREQU
+    / HATEQU
+    / MODEQU
+    / SLEQU
+    / SREQU
+    / BSREQU
+    ;
+
+ConditionalExpression
+    = ConditionalOrExpression (QUERY Expression COLON ConditionalOrExpression)*
+    ;
+
+ConditionalOrExpression
+    = ConditionalAndExpression (OROR ConditionalAndExpression)*
+    ;
+
+ConditionalAndExpression
+    = InclusiveOrExpression (ANDAND InclusiveOrExpression)*
+    ;
+
+InclusiveOrExpression
+    = ExclusiveOrExpression (OR ExclusiveOrExpression)*
+    ;
+
+ExclusiveOrExpression
+    = AndExpression (HAT AndExpression)*
+    ;
+
+AndExpression
+    = EqualityExpression (AND EqualityExpression)*
+    ;
+
+EqualityExpression
+    = RelationalExpression ((EQUAL /  NOTEQUAL) RelationalExpression)*
+    ;
+
+RelationalExpression
+    = ShiftExpression ((LE / GE / LT / GT) ShiftExpression / INSTANCEOF ReferenceType)*
+    ;
+
+ShiftExpression
+    = AdditiveExpression ((SL / SR / BSR) AdditiveExpression)*
+    ;
+
+AdditiveExpression
+    = MultiplicativeExpression ((PLUS / MINUS) MultiplicativeExpression)*
+    ;
+
+MultiplicativeExpression
+    = UnaryExpression ((STAR / DIV / MOD) UnaryExpression)*
+    ;
+
+UnaryExpression
+    = PrefixOp UnaryExpression
+    / LPAR Type RPAR UnaryExpression
+    / Primary (Selector)* (PostfixOp)*
+    ;
+
+Primary
+    = ParExpression
+    / NonWildcardTypeArguments (ExplicitGenericInvocationSuffix / THIS Arguments)
+    / THIS Arguments?
+    / SUPER SuperSuffix
+    / Literal
+    / NEW Creator
+    / QualifiedIdentifier IdentifierSuffix?
+    / BasicType Dim* DOT CLASS
+    / VOID DOT CLASS
+    ;
+
+IdentifierSuffix
+    = LBRK ( RBRK Dim* DOT CLASS / Expression RBRK )
+    / Arguments
+    / DOT
+      ( CLASS
+      / ExplicitGenericInvocation
+      / THIS
+      / SUPER Arguments
+      / NEW NonWildcardTypeArguments? InnerCreator
+      )
+    ;
+
+    // This definition comes from Chapter 18 in JLS Third edition.
+    // The definition in JLS SE7 seems incorrect as it would mean
+    // nesting of brackets.
+
+ExplicitGenericInvocation
+    = NonWildcardTypeArguments ExplicitGenericInvocationSuffix
+    ;
+
+NonWildcardTypeArguments
+    = LPOINT ReferenceType (COMMA ReferenceType)* RPOINT
+    ;
+
+TypeArgumentsOrDiamond
+    = LPOINT RPOINT
+    / TypeArguments
+    ;
+
+NonWildcardTypeArgumentsOrDiamond
+    = LPOINT RPOINT
+    / NonWildcardTypeArguments
+    ;
+
+ExplicitGenericInvocationSuffix
+    = SUPER SuperSuffix
+    / Identifier Arguments
+    ;
+
+PrefixOp
+    = INC
+    / DEC
+    / BANG
+    / TILDA
+    / PLUS
+    / MINUS
+    ;
+
+PostfixOp
+    = INC
+    / DEC
+    ;
+
+Selector
+    = DOT Identifier Arguments?
+    / DOT ExplicitGenericInvocation
+    / DOT THIS
+    / DOT SUPER SuperSuffix
+    / DOT NEW NonWildcardTypeArguments? InnerCreator
+    / DimExpr
+    ;
+
+SuperSuffix
+    = Arguments
+    / DOT NonWildcardTypeArguments? Identifier Arguments?
+    ;
+
+    // The definition of SuperSuffix in JLS Chapter 18 is incorrect:
+    // it does not allow NonWildcardTypeArguments. See JLS 15.12.
+
+
+BasicType
+   := ( "byte"
+      / "short"
+      / "char"
+      / "int"
+      / "long"
+      / "float"
+      / "double"
+      / "boolean"
+      ) !LetterOrDigit
+    ;
+
+Arguments
+    = LPAR (Expression (COMMA Expression)*)? RPAR
+    ;
+
+Creator
+    = (BasicType / CreatedName) ArrayCreatorRest
+    / NonWildcardTypeArguments? CreatedName ClassCreatorRest
+    ;
+
+    // The definition of Creator in JLS Chapter 18 is incorrect:
+    // it does not allow BasicType for array creator. See JLS 15.10.
+
+CreatedName
+    = Identifier TypeArgumentsOrDiamond? ( DOT Identifier TypeArgumentsOrDiamond? )*
+    ;
+
+InnerCreator
+    = Identifier NonWildcardTypeArgumentsOrDiamond? ClassCreatorRest
+    ;
+
+ClassCreatorRest
+    = Arguments ClassBody?
+    ;
+
+ArrayCreatorRest
+    = Dim+ ArrayInitializer
+    / DimExpr+ Dim*
+    / Dim
+    ;
+
+    // This version comes from JLS Chapter 18.
+    // It is more generous than JLS 15.10. According to that definition,
+    // BasicType must be followed by at least one DimExpr or by ArrayInitializer.
+    // Besides, the last alternative does not correspond to JLS 15.10,
+    // and may be an error.
+
+ArrayInitializer
+    = LWING (VariableInitializer (COMMA VariableInitializer)*)? COMMA?  RWING
+    ;
+
+VariableInitializer
+    = ArrayInitializer
+    / Expression
+    ;
+
+ParExpression
+    = LPAR Expression RPAR
+    ;
+
+QualifiedIdentifier
+    = Identifier (DOT Identifier)*
+    ;
+
+Dim
+    = LBRK RBRK
+    ;
+
+DimExpr
+    = LBRK Expression RBRK
+    ;
+
+//-------------------------------------------------------------------------
+//  Types and Modifiers
+//-------------------------------------------------------------------------
+
+Type
+    = (BasicType / ClassType) Dim*
+    ;
+
+ReferenceType
+    = BasicType Dim+
+    / ClassType Dim*
+    ;
+
+ClassType
+    = Identifier TypeArguments? (DOT Identifier TypeArguments?)*
+    ;
+
+ClassTypeList
+    = ClassType (COMMA ClassType)*
+    ;
+
+TypeArguments
+    = LPOINT TypeArgument (COMMA TypeArgument)* RPOINT
+    ;
+
+TypeArgument
+    = ReferenceType
+    / QUERY ((EXTENDS / SUPER) ReferenceType)?
+    ;
+
+TypeParameters
+    = LPOINT TypeParameter (COMMA TypeParameter)* RPOINT
+    ;
+
+TypeParameter
+    = Identifier (EXTENDS Bound)?
+    ;
+
+Bound
+    = ClassType (AND ClassType)*
+    ;
+
+Modifier
+    = Annotation / KeyModifier
+    ;
+
+KeyModifier
+    := ( "public"
+       / "protected"
+       / "private"
+       / "static"
+       / "abstract"
+       / "final"
+       / "native"
+       / "synchronized"
+       / "transient"
+       / "volatile"
+       / "strictfp"
+       ) !LetterOrDigit
+    ;
+
+    // This common definition of Modifier is part of the modification
+    // in JLS Chapter 18 to minimize look ahead. The main body of JLS has
+    // different lists of modifiers for different language elements.
+
+//-------------------------------------------------------------------------
+//  Annotations
+//-------------------------------------------------------------------------
+
+AnnotationTypeDeclaration
+    = AT INTERFACE Identifier AnnotationTypeBody
+    ;
+
+AnnotationTypeBody
+    = LWING AnnotationTypeElementDeclaration* RWING
+    ;
+
+AnnotationTypeElementDeclaration
+    = Modifier* AnnotationTypeElementRest
+    / SEMI
+    ;
+
+AnnotationTypeElementRest
+    = Type AnnotationMethodOrConstantRest SEMI
+    / ClassDeclaration
+    / EnumDeclaration
+    / InterfaceDeclaration
+    / AnnotationTypeDeclaration
+    ;
+
+AnnotationMethodOrConstantRest
+    = AnnotationMethodRest
+    / AnnotationConstantRest
+    ;
+
+AnnotationMethodRest
+    = Identifier LPAR RPAR DefaultValue?
+    ;
+
+AnnotationConstantRest
+    = VariableDeclarators
+    ;
+
+DefaultValue
+    = DEFAULT ElementValue
+    ;
+
+Annotation
+    = NormalAnnotation
+    / SingleElementAnnotation
+    / MarkerAnnotation
+    ;
+
+NormalAnnotation
+    = AT QualifiedIdentifier LPAR ElementValuePairs? RPAR
+    ;
+
+SingleElementAnnotation
+    = AT QualifiedIdentifier LPAR ElementValue RPAR
+    ;
+
+MarkerAnnotation
+    = AT QualifiedIdentifier
+    ;
+
+ElementValuePairs
+    = ElementValuePair (COMMA ElementValuePair)*
+    ;
+
+ElementValuePair
+    = Identifier EQU ElementValue
+    ;
+
+ElementValue
+    = ConditionalExpression
+    / Annotation
+    / ElementValueArrayInitializer
+    ;
+
+ElementValueArrayInitializer
+    = LWING ElementValues? COMMA? RWING
+    ;
+
+ElementValues
+    = ElementValue (COMMA ElementValue)*
+    ;
+
+
+//=========================================================================
+//  Lexical Structure
+//=========================================================================
+//-------------------------------------------------------------------------
+//  JLS 3.1-3  Unicode
+//-------------------------------------------------------------------------
+//  The Unicode escapes in Java source are converted
+//  to Java characters by a preprocessor prior to parsing.
+//  This is not emulated here; the Unicode escapes are only allowed
+//  in string and character literals. They are treated as error in other
+//  structures (except comments). The warning in JLS 3.10.5 against using
+//  Unicode escapes for line terminators and quotes in string and character
+//  literals does not apply here.
+//-------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------
+//  JLS 3.6-7  Spacing
+//-------------------------------------------------------------------------
+
+Spacing
+    = ( [ \t\r\n\f]+          // WhiteSpace
+      / "/*" (!"*/" _)* "*/"      // TraditionalComment
+      / "//" (![\r\n] _)* [\r\n]  // EndOfLineComment
+      )* ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.8  Identifiers
+//-------------------------------------------------------------------------
+
+Identifier := !Keyword Letter LetterOrDigit* ;
+
+Letter = [a-z] / [A-Z] / [_$] ;
+
+LetterOrDigit = [a-z] / [A-Z] / [0-9] / [_$] ;
+
+    // These are traditional definitions of letters and digits.
+    // JLS defines letters and digits as Unicode characters recognized
+    // as such by special Java procedures, which is difficult
+    // to express in terms of Parsing Expressions.
+
+//-------------------------------------------------------------------------
+//  JLS 3.9  Keywords
+//  More precisely: reserved words. According to JLS, "true", "false",
+//  and "null" are technically not keywords - but still must not appear
+//  as identifiers. Keywords "const" and "goto" are not used; JLS explains
+//  the reason.
+//-------------------------------------------------------------------------
+
+Keyword
+
+    = ( "abstract"
+      / "assert"
+      / "boolean"
+      / "break"
+      / "byte"
+      / "case"
+      / "catch"
+      / "char"
+      / "class"
+      / "const"
+      / "continue"
+      / "default"
+      / "double"
+      / "do"
+      / "else"
+      / "enum"
+      / "extends"
+      / "false"
+      / "finally"
+      / "final"
+      / "float"
+      / "for"
+      / "goto"
+      / "if"
+      / "implements"
+      / "import"
+      / "interface"
+      / "int"
+      / "instanceof"
+      / "long"
+      / "native"
+      / "new"
+      / "null"
+      / "package"
+      / "private"
+      / "protected"
+      / "public"
+      / "return"
+      / "short"
+      / "static"
+      / "strictfp"
+      / "super"
+      / "switch"
+      / "synchronized"
+      / "this"
+      / "throws"
+      / "throw"
+      / "transient"
+      / "true"
+      / "try"
+      / "void"
+      / "volatile"
+      / "while"
+      ) !LetterOrDigit
+    ;
+
+ASSERT       := "assert"       !LetterOrDigit ;
+BREAK        := "break"        !LetterOrDigit ;
+CASE         := "case"         !LetterOrDigit ;
+CATCH        := "catch"        !LetterOrDigit ;
+CLASS        := "class"        !LetterOrDigit ;
+CONTINUE     := "continue"     !LetterOrDigit ;
+DEFAULT      := "default"      !LetterOrDigit ;
+DO           := "do"           !LetterOrDigit ;
+ELSE         := "else"         !LetterOrDigit ;
+ENUM         := "enum"         !LetterOrDigit ;
+EXTENDS      := "extends"      !LetterOrDigit ;
+FINALLY      := "finally"      !LetterOrDigit ;
+FINAL        := "final"        !LetterOrDigit ;
+FOR          := "for"          !LetterOrDigit ;
+IF           := "if"           !LetterOrDigit ;
+IMPLEMENTS   := "implements"   !LetterOrDigit ;
+IMPORT       := "import"       !LetterOrDigit ;
+INTERFACE    := "interface"    !LetterOrDigit ;
+INSTANCEOF   := "instanceof"   !LetterOrDigit ;
+NEW          := "new"          !LetterOrDigit ;
+PACKAGE      := "package"      !LetterOrDigit ;
+RETURN       := "return"       !LetterOrDigit ;
+STATIC       := "static"       !LetterOrDigit ;
+SUPER        := "super"        !LetterOrDigit ;
+SWITCH       := "switch"       !LetterOrDigit ;
+SYNCHRONIZED := "synchronized" !LetterOrDigit ;
+THIS         := "this"         !LetterOrDigit ;
+THROWS       := "throws"       !LetterOrDigit ;
+THROW        := "throw"        !LetterOrDigit ;
+TRY          := "try"          !LetterOrDigit ;
+VOID         := "void"         !LetterOrDigit ;
+WHILE        := "while"        !LetterOrDigit ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.10  Literals
+//-------------------------------------------------------------------------
+
+Literal
+    := ( FloatLiteral
+       / IntegerLiteral          // May be a prefix of FloatLiteral
+       / CharLiteral
+       / StringLiteral
+       / "true"  !LetterOrDigit
+       / "false" !LetterOrDigit
+       / "null"  !LetterOrDigit
+       );
+
+IntegerLiteral
+    = ( HexNumeral
+      / BinaryNumeral
+      / OctalNumeral            // May be a prefix of HexNumeral or BinaryNumeral
+      / DecimalNumeral          // May be a prefix of OctalNumeral
+      ) [lL]?
+    ;
+
+DecimalNumeral
+    = "0"
+    / [1-9]([_]*[0-9])*
+    ;
+
+HexNumeral
+    = ("0x" / "0X") HexDigits
+    ;
+
+BinaryNumeral
+    = ("0b" / "0B") [01]([_]*[01])*
+    ;
+
+OctalNumeral
+    = "0" ([_]*[0-7])+
+    ;
+
+FloatLiteral
+    = HexFloat
+    / DecimalFloat
+    ;
+
+DecimalFloat
+    = Digits "." Digits?  Exponent? [fFdD]?
+    / "." Digits Exponent? [fFdD]?
+    / Digits Exponent [fFdD]?
+    / Digits Exponent? [fFdD]
+    ;
+
+Exponent
+    = [eE] [+\\-]? Digits
+    ;
+
+HexFloat
+    = HexSignificand BinaryExponent [fFdD]?
+    ;
+
+HexSignificand
+    = ("0x" / "0X") HexDigits? "." HexDigits
+    / HexNumeral "."?                           // May be a prefix of above
+    ;
+
+BinaryExponent
+    = [pP] [+\\-]? Digits
+    ;
+
+Digits
+    = [0-9]([_]*[0-9])*
+    ;
+
+HexDigits
+    = HexDigit ([_]*HexDigit)*
+    ;
+
+HexDigit
+    = [a-f] / [A-F] / [0-9]
+    ;
+
+CharLiteral
+    = "'" (Escape / !['\\\n\r] _) "'"                      // this " keeps the editor happy
+    ;
+
+StringLiteral
+    = "\"" (Escape / ![\"\\\n\r] _)* "\""                   // this " keeps the editor happy
+    ;
+
+Escape
+    = "\\" ([btnfr\"'\\] / OctalEscape / UnicodeEscape)     // this " keeps the editor happy
+    ;
+
+OctalEscape
+    = [0-3][0-7][0-7]
+    / [0-7][0-7]
+    / [0-7]
+    ;
+
+UnicodeEscape
+    = "u"+ HexDigit HexDigit HexDigit HexDigit
+    ;
+
+//-------------------------------------------------------------------------
+//  JLS 3.11-12  Separators, Operators
+//-------------------------------------------------------------------------
+
+AT              :=   "@"        ;
+AND             :=   "&"        ;
+ANDAND          :=   "&&"       ;
+ANDEQU          :=   "&="       ;
+BANG            :=   "!" !"="   ;
+BSR             :=   ">>>" !"=" ;
+BSREQU          :=   ">>>="     ;
+COLON           :=   ":"        ;
+COMMA           :=   ","        ;
+DEC             :=   "--"       ;
+DIV             :=   "/" !"="   ;
+DIVEQU          :=   "/="       ;
+DOT             :=   "."        ;
+ELLIPSIS        :=   "..."      ;
+EQU             :=   "=" !"="   ;
+EQUAL           :=   "=="       ;
+GE              :=   ">="       ;
+GT              :=   ">"        ;
+HAT             :=   "^" !"="   ;
+HATEQU          :=   "^="       ;
+INC             :=   "++"       ;
+LBRK            :=   "["        ;
+LE              :=   "<="       ;
+LPAR            :=   "("        ;
+LPOINT          :=   "<"        ;
+LT              :=   "<"        ;
+LWING           :=   "{"        ;
+MINUS           :=   "-"        ;
+MINUSEQU        :=   "-="       ;
+MOD             :=   "%" !"="   ;
+MODEQU          :=   "%="       ;
+NOTEQUAL        :=   "!="       ;
+OR              :=   "|"        ;
+OREQU           :=   "|="       ;
+OROR            :=   "||"       ;
+PLUS            :=   "+"        ;
+PLUSEQU         :=   "+="       ;
+QUERY           :=   "?"        ;
+RBRK            :=   "]"        ;
+RPAR            :=   ")"        ;
+RPOINT          :=   ">"        ;
+RWING           :=   "}"        ;
+SEMI            :=   ";"        ;
+SL              :=   "<<" !"="  ;
+SLEQU           :=   "<<="      ;
+SR              :=   ">>"       ;
+SREQU           :=   ">>="      ;
+STAR            :=   "*" !"="   ;
+STAREQU         :=   "*="       ;
+TILDA           :=   "~"        ;
+
+EOT = !_ ;
