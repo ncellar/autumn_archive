@@ -51,13 +51,21 @@ public final class CharRange extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         builder.append("charRange(");
         builder.append(start);
         builder.append(", ");
         builder.append(end);
         builder.append(")");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public String ownPrintableData()
+    {
+        return toString();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,109 +1,72 @@
 package com.norswap.autumn.parsing.graph;
 
+import com.norswap.autumn.parsing.Grammar;
+import com.norswap.autumn.parsing.ParsingExpressionFactory;
 import com.norswap.autumn.parsing.expressions.LeftRecursive;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.util.Array;
+import com.norswap.util.Array;
+import com.norswap.util.graph_visit.GraphVisitor;
+import com.norswap.util.graph_visit.NodeState;
+import com.norswap.util.slot.Slot;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 /**
- * This detects left-recursive cycles in a parsing expression graphs. For each cycle, it selects
- * a parsing expression that must be marked as left recursive to break the cycle and puts into
- * {@link #leftRecursives}.
- *
- * The detector is aware of pre-resolved left-recursion (via {@link LeftRecursive} nodes and does
- * not record nodes in {@link #leftRecursives} for that cycle, unless they belong to another cycle.
- *
- * The basic idea of the algorithm is to mark an expression as left-recursive whenever {@link
- * #afterChild} reports {@link State#VISITING}. Effectively, this means that the expression
- * selected to break a cycle is the one encountered first when walking the rules in a top-down,
- * left-to-right (w.r.t. the order of {@link ParsingExpression#firsts}) manner. Cycles reachable
- * from multiple rules will be detected in the first rule that reaches it.
- *
- * However, this doesn't account for pre-existent {@link LeftRecursive} nodes. To account for
- * them, we map each expression to the recursion depth at which it occurs. We also record the
- * recursion depth of each encountered LeftRecursive node. When detecting recursion; if the
- * recursive node occurs at a lower stack depth than the last encountered LeftRecursive node, it
- * means that the cycle goes through the LeftRecursive node and is thus already broken; so we do
- * not record it.
- *
- * This class only detects cycles and record the expressions at which theses cycles should be
- * broken. To actually break them, see {@link LeftRecursionBreaker}.
+ * This detects left-recursive cycles in a parsing expression graphs. For each cycle, it selects a
+ * node that must be marked as left recursive (by wrapping it inside a {@link LeftRecursive} node)
+ * to break the cycle. The selected node will be mapped to a new {@link LeftRecursive} inside {@link
+ * #leftRecursives}.
+ * <p>
+ * The node selected to break a cycle is the first node pertaining to the cycle encountered in a
+ * top-down left-to-right walk of the graph.
+ * <p>
+ * The visitor is aware of pre-existent {@link LeftRecursive} nodes and does not detect already
+ * cycles anew.
+ * <p>
+ * To handle these nodes, we map each expression to the recursion depth at which it occurs. We also
+ * record the recursion depth of each encountered LeftRecursive node. When detecting recursion; if
+ * the recursive node occurs at a lower stack depth than the last encountered LeftRecursive node, it
+ * means that the cycle goes through the LeftRecursive node and is thus already broken; so we do not
+ * record it.
  */
-public final class LeftRecursionDetector extends ExpressionGraphWalker
+public class LeftRecursionDetector extends GraphVisitor<ParsingExpression>
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public Set<ParsingExpression> leftRecursives;
+    public LeftRecursionDetector(Grammar grammar)
+    {
+        super(Walks.inPlaceFirsts(grammar));
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     private int stackDepth = 0;
+
     private HashMap<ParsingExpression, Integer> stackPositions = new HashMap<>();
+
     private Array<Integer> leftRecursiveStackPositions = new Array<>();
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Runs the detector then returns {@link #leftRecursives}.
-     */
-    public static Set<ParsingExpression> detect(ParsingExpression[] rules)
-    {
-        return new LeftRecursionDetector().run(rules);
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Runs the detector then returns {@link #leftRecursives}.
-     */
-    public Set<ParsingExpression> run(ParsingExpression[] rules)
-    {
-        leftRecursives = new HashSet<>();
-        stackDepth = 0;
-        stackPositions = new HashMap<>();
-        leftRecursiveStackPositions = new Array<>();
-
-        walk(rules);
-
-        stackPositions = null;
-        leftRecursiveStackPositions = null;
-        return leftRecursives;
-    }
+    public HashMap<ParsingExpression, ParsingExpression> leftRecursives = new HashMap<>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    protected void before(ParsingExpression pe)
+    public void before(ParsingExpression pe)
     {
         if (pe instanceof LeftRecursive)
         {
             leftRecursiveStackPositions.push(stackDepth);
         }
 
-        stackPositions.put(pe, stackDepth++);
+        stackPositions.put(pe, stackDepth);
+        ++stackDepth;
     }
 
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    protected void afterChild(ParsingExpression pe, ParsingExpression child, int index, State state)
-    {
-        Integer leftPos = leftRecursiveStackPositions.peekOrNull();
-
-        if (state == State.VISITING
-            && stackPositions.get(child) > (leftPos != null ? leftPos : -1))
-        {
-            leftRecursives.add(child);
-        }
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    @Override
-    protected void afterAll(ParsingExpression pe)
+    public void after(ParsingExpression pe, List<Slot<ParsingExpression>> children, NodeState state)
     {
         if (pe instanceof LeftRecursive)
         {
@@ -114,13 +77,31 @@ public final class LeftRecursionDetector extends ExpressionGraphWalker
         --stackDepth;
     }
 
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // ---------------------------------------------------------------------------------------------
 
     @Override
-    protected ParsingExpression[] children(ParsingExpression pe)
+    public void afterChild(ParsingExpression pe, Slot<ParsingExpression> slot, NodeState state)
     {
-        return pe.firsts();
+        if (state == NodeState.CUTOFF)
+        {
+            ParsingExpression child;
+            Integer leftPos = leftRecursiveStackPositions.peekOr(-1);
+
+            if (stackPositions.get(child = slot.get()) > leftPos)
+            {
+                LeftRecursive lr = ParsingExpressionFactory.leftRecursive(child);
+                leftRecursives.put(child, ParsingExpressionFactory.leftRecursive(child));
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public void conclude()
+    {
+        stackPositions = null;
+        leftRecursiveStackPositions = null;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,10 +1,11 @@
 package com.norswap.autumn.parsing.expressions;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
-import com.norswap.autumn.util.Array;
+import com.norswap.autumn.parsing.graph.Nullability;
+import com.norswap.util.Array;
 
 
 /**
@@ -35,15 +36,23 @@ public final class Reference extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         builder.append(target);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public String ownPrintableData()
+    {
+        return target;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
         throw new UnsupportedOperationException(
             "Trying to get the nullability of: " + target);
@@ -52,7 +61,7 @@ public final class Reference extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public ParsingExpression[] firsts()
+    public ParsingExpression[] firsts(Grammar grammar)
     {
         throw new UnsupportedOperationException(
             "Trying to get the FIRST set of: " + target);

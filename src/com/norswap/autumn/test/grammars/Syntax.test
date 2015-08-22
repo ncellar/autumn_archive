@@ -1,0 +1,136 @@
+@A package my.pkg;
+
+import a.pkg.Class;
+import a.pkg.*;
+import static a.pkg.Class.MEMBER;
+import static a.pkg.Class.*;
+
+@Annotation1
+@Annotation2(1)
+@Annotation3({1, 2, 3})
+@Annotation4(@AnnotationParam)
+@Annotation5(x = 1, y = {1, 2, 3}, z = @AnnotationParam)
+
+public final class Test1<U, T extends U> extends Something<T> implements X, Y
+{
+    static {
+        functionCall();
+    }
+
+    {
+        functionCall();
+    }
+
+    private <X> Class() throws E1, E2
+    {
+        super();
+        functionCall();
+    }
+    
+    public volatile @A int x = 1;
+
+    my.pkg.@A Class1<X>.@A Class2<X>.Class3 y;
+
+    @A int @A [] z = new @A int @A []{ 1, 2 };
+
+    Object[] u = new Object[]{ o1, o2 };
+
+    Type<? , T, ? extends Object, ? super Object> v;
+
+    int[][] w = new int[3][];
+
+    int a, b = 1, c;
+
+    abstract void abstractMethod();
+
+    void test(final @A int x) throws E1, E2;
+
+    @A public final <X, Y extends Collection>
+    Object[] method(Test1 this, int x, Object[] y, Class z, List<Object> v, Object... w)
+     {
+        {
+            final @A int x = 1;
+            functionCall();
+        }
+
+        if (true) {} else {}
+
+        while (true) ;
+        do ; while (true);
+        for (int i = 0; i < 42; ++i) ;
+        for (Object x: collection) ;
+
+        label: switch(expr)
+        {
+            case A:
+            case B:
+                functionCall();
+                break;
+
+            case C:
+                break label;
+
+            default:
+                functionCall();
+                break;
+        }
+
+        synchronized (expr) {}
+
+        throw new Exception();
+
+        assert true : "true";
+
+        ;
+
+        try {}
+        catch (E1 | E2 e) {}
+        catch (E3 e) {}
+        finally {}
+
+        try {} finally {}
+        try {} catch (E1 e) {}
+        try (Res e = new Res()) {}
+        try (Res e = new Res()) {} catch (E1 e) {} finally {}
+
+        x = () -> {};
+        x = () -> x;
+        x = y -> {};
+        x = (x, y) -> {};
+
+        x = i++ * ++i + 1 << 2 & 3 >> 4 ^ 5 >>> 6 | 7 == 8 && 9 != 10 || 11 < 12 || x instanceof Object
+            ? (Object) thing.<X, Y>method(X.this, X.super, X.class, X.sthingElse, "lit", thing.call(), X::new)
+            : (x = y[1 + 2]) ;
+
+        return null;
+     }
+}
+
+enum Test2
+{
+    A(1, 2){ void method(){} },
+    B(),
+    C { void method(){} },
+    D,;
+
+    Test() {}
+
+    void method() {}
+}
+
+abstract interface Test3 implements X, Y
+{
+    public void method();
+
+    default int method2()
+    {
+        return 42;
+    }
+}
+
+@interface Test4
+{
+    public int x();
+    int y()[] default {1, 2, 3};
+    Annotation z() default {x=1, y=2};
+}

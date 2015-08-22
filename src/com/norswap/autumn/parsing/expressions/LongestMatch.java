@@ -1,11 +1,12 @@
 package com.norswap.autumn.parsing.expressions;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.expressions.common.NaryParsingExpression;
 import com.norswap.autumn.parsing.OutputChanges;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
+import com.norswap.autumn.parsing.graph.Nullability;
 
 /**
  * Invokes all its operands at its initial input position.
@@ -67,7 +68,7 @@ public final class LongestMatch extends NaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
         return Nullability.any(this, operands);
     }
@@ -75,7 +76,7 @@ public final class LongestMatch extends NaryParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public ParsingExpression[] firsts()
+    public ParsingExpression[] firsts(Grammar grammar)
     {
         return operands;
     }

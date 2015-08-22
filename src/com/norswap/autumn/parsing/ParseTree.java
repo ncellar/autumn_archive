@@ -1,41 +1,42 @@
 package com.norswap.autumn.parsing;
 
-import com.norswap.autumn.util.Array;
+import com.norswap.util.Array;
+import com.norswap.util.Strings;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * - name != null && !grouped : normal node
- * - name != null && grouped  : group capture
- * - name == null             : container
- */
 public final class ParseTree implements Iterable<ParseTree>
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public String name;
+    public String accessor;
     public String value;
+    public boolean group;
+    public Array<String> tags;
     public Array<ParseTree> children;
-    public boolean grouped;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public ParseTree(){}
+    public ParseTree() {}
 
-    public ParseTree(String name)
+    public ParseTree(String accessor, Array<String> tags, boolean group)
     {
-        this.name = name;
+        this.accessor = accessor;
+        this.tags = tags;
+        this.group = group;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     public int childrenCount()
     {
-        return children == null
-            ? 0
-            : children.size();
+        return children == null ? 0 : children.size();
     }
+
+    // ---------------------------------------------------------------------------------------------
 
     void truncateChildren(int childrenCount)
     {
@@ -51,44 +52,19 @@ public final class ParseTree implements Iterable<ParseTree>
             children = new Array<>();
         }
 
-        if (child.name == null)
-        {
-            if (child.children != null)
-            {
-                children.addAll(child.children);
-            }
-        }
-        else
-        {
-            children.add(child);
-        }
+        children.add(child);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public void addGrouped(ParseTree child)
+    public void addAll(Iterable<ParseTree> children)
     {
-        if (children == null)
-        {
-            children = new Array<>();
-        }
-
-        ParseTree container = getOrNull(child.name);
-
-        if (container == null)
-        {
-            container = new ParseTree(child.name);
-            container.grouped = true;
-            container.children = new Array<>();
-            children.add(container);
-        }
-
-        container.children.add(child);
+        children.forEach(this::add);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public ParseTree getOrNull(String name)
+    public ParseTree getOrNull(String accessor)
     {
         if (children == null)
         {
@@ -97,7 +73,7 @@ public final class ParseTree implements Iterable<ParseTree>
 
         for (ParseTree child: children)
         {
-            if (name.equals(child.name))
+            if (accessor.equals(child.accessor))
             {
                 return child;
             }
@@ -108,14 +84,14 @@ public final class ParseTree implements Iterable<ParseTree>
 
     // ---------------------------------------------------------------------------------------------
 
-    public ParseTree get(String name)
+    public ParseTree get(String accessor)
     {
-        ParseTree node = getOrNull(name);
+        ParseTree node = getOrNull(accessor);
 
         if (node == null)
         {
             throw new RuntimeException(
-                "Node \"" + this.name + "\" doesn't have a child named \"" + name + "\"");
+                "Node \"" + this.accessor + "\" doesn't have a child named \"" + accessor + "\"");
         }
 
         return node;
@@ -123,14 +99,14 @@ public final class ParseTree implements Iterable<ParseTree>
 
     // ---------------------------------------------------------------------------------------------
 
-    public String value(String name)
+    public String value(String accessor)
     {
-        ParseTree node = get(name);
+        ParseTree node = get(accessor);
 
         if (node.value == null)
         {
             throw new RuntimeException(
-                "Node \"" + name + "\" under node \"" + this.name + "\" doesn't have a value.");
+                "Node \"" + accessor + "\" under node \"" + this.accessor + "\" doesn't have a value.");
         }
 
         return node.value;
@@ -138,33 +114,32 @@ public final class ParseTree implements Iterable<ParseTree>
 
     // ---------------------------------------------------------------------------------------------
 
-    public ParseTree group(String name)
+    public List<ParseTree> group(String accessor)
     {
-        ParseTree node = get(name);
+        Array<ParseTree> group = new Array<>();
 
-        if (!node.grouped)
+        for (ParseTree child: children)
         {
-            throw new RuntimeException(
-                "Node \"" + name + "\" under node \"" + this.name + "\" isn't a group.");
+            if (accessor.equals(child.accessor))
+            {
+                if (!child.group)
+                {
+                    throw new RuntimeException(
+                        "Node " + child.info() + " under node " + info() + " doesn't belong to a group.");
+                }
+
+                group.add(child);
+            }
         }
 
-        return node;
+        return group;
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public ParseTree child()
     {
-        if (children == null || children.size() == 0)
-        {
-            throw new RuntimeException("Node \"" + name + "\" doesn't have children.");
-        }
-        else if (children.size() != 1)
-        {
-            throw new RuntimeException("Node \"" + name + "\" has more than one child.");
-        }
-
-        return children.get(0);
+        return child(0);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -174,7 +149,7 @@ public final class ParseTree implements Iterable<ParseTree>
         if (children == null || children.size() <= i)
         {
             throw new RuntimeException(
-                "Node \"" + name + "\" doesn't have a child with index: " + i);
+                "Node " + info() + " doesn't have a child with index: " + i);
         }
 
         return children.get(i);
@@ -182,22 +157,67 @@ public final class ParseTree implements Iterable<ParseTree>
 
     // ---------------------------------------------------------------------------------------------
 
-    public boolean has(String name)
+    public boolean has(String accessor)
     {
-        return getOrNull(name) != null;
+        return getOrNull(accessor) != null;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public Iterable<ParseTree> tagged(String tag)
+    {
+        // TODO array filter function
+
+        return children.stream()
+            .filter(child -> child.hasTag(tag))
+            .collect(Collectors.toCollection(() -> new Array<>()));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public ParseTree tagged1(String tag)
+    {
+        for (ParseTree child: children)
+        {
+            if (child.hasTag(tag))
+            {
+                return child;
+            }
+        }
+
+        return null;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public boolean hasTag(String tag)
+    {
+        return tags != null && tags.contains(tag);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public String info()
+    {
+        return String.format("[%s%s%s]",
+            accessor != null ? accessor : "",
+            accessor != null && tags != null ? " / " : "",
+            tags != null ? tags : "");
+    }
+
+    // ---------------------------------------------------------------------------------------------
 
     @Override
     public String toString()
     {
         StringBuilder builder = new StringBuilder();
+        int trailing = 0;
 
-        if (name != null)
+        if (accessor != null)
         {
-            builder.append(name);
+            builder.append(accessor);
             builder.append(": ");
+            trailing = 2;
         }
 
         if (children != null && !children.isEmpty())
@@ -215,19 +235,41 @@ public final class ParseTree implements Iterable<ParseTree>
                 builder.setLength(builder.length() - 2);
             }
 
-            builder.append("]");
+            builder.append("] ");
+            trailing = 1;
         }
-        else if (value != null)
+
+        if (value != null)
         {
-            builder.append("\"");
+            builder.append(" \"");
             builder.append(value);
-            builder.append("\"");
+            builder.append("\" ");
+            trailing = 1;
         }
-        else if (name != null)
+
+        if (tags != null && !tags.isEmpty())
         {
-            builder.setLength(builder.length() - 2);
+            builder.append(" (");
+
+            for (String tag: tags)
+            {
+                builder.append(tag);
+                builder.append(", ");
+            }
+
+            if (tags.size() > 0)
+            {
+                builder.setLength(builder.length() - 2);
+            }
+
+            builder.append(") ");
+            trailing = 1;
+
         }
-        else
+
+        builder.setLength(builder.length() - trailing);
+
+        if (trailing == 0)
         {
             builder.append("[]");
         }
@@ -248,30 +290,42 @@ public final class ParseTree implements Iterable<ParseTree>
 
     public void toTreeString(StringBuilder builder, int depth)
     {
-        builder.append(new String(new char[depth]).replace("\0", "-|"));
-        builder.append(name != null ? name : "container");
-        builder.append("\n");
+        builder.append(Strings.times(depth, "-|"));
 
-        if (grouped)
+        if (accessor != null)
         {
-            int i = 0;
-            for (ParseTree child: children)
+            builder.append(accessor);
+
+            if (tags == null && value != null)
             {
-                builder.append(new String(new char[depth + 1]).replace("\0", "-|"));
+                builder.append(" - ");
+            }
+            else if (tags != null)
+            {
                 builder.append(" ");
-                builder.append(i);
-                builder.append("\n");
-
-                if (child.children != null)
-                for (ParseTree grandChild: child.children)
-                {
-                    grandChild.toTreeString(builder, depth + 2);
-                }
-
-                ++i;
             }
         }
-        else if (children != null)
+
+        if (tags != null)
+        {
+            builder.append(tags);
+
+            if (value != null)
+            {
+                builder.append(" - ");
+            }
+        }
+
+        if (value != null)
+        {
+            builder.append("\"");
+            builder.append(value);
+            builder.append("\"");
+        }
+
+        builder.append("\n");
+
+        if (children != null)
         {
             for (ParseTree child: children)
             {
@@ -295,7 +349,7 @@ public final class ParseTree implements Iterable<ParseTree>
     @Override
     public boolean equals(Object o)
     {
-        // mostly auto-generated; modified to accept null children == empty children
+        // mostly auto-generated; reformated & modified to accept null == empty
 
         if (this == o)
             return true;
@@ -303,20 +357,28 @@ public final class ParseTree implements Iterable<ParseTree>
         if (o == null || getClass() != o.getClass())
             return false;
 
-        ParseTree parseTree = (ParseTree) o;
+        ParseTree pt = (ParseTree) o;
 
-        if (grouped != parseTree.grouped)
+        if (group != pt.group)
             return false;
 
-        if (name != null ? !name.equals(parseTree.name) : parseTree.name != null)
+        if (accessor != null ? !accessor.equals(pt.accessor) : pt.accessor != null)
             return false;
 
-        if (value != null ? !value.equals(parseTree.value) : parseTree.value != null)
+        if (value != null ? !value.equals(pt.value) : pt.value != null)
             return false;
 
-        return children == null
-            ? parseTree.children == null || parseTree.children.isEmpty()
-            : children.equals(parseTree.children);
+        if (tags != null
+                ? !tags.equals(pt.tags)
+                : (pt.tags != null && !pt.tags.isEmpty()))
+            return false;
+
+        if (children != null
+                ? !children.equals(pt.children)
+                : (pt.children != null && !pt.children.isEmpty()))
+            return false;
+
+        return true;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -324,12 +386,13 @@ public final class ParseTree implements Iterable<ParseTree>
     @Override
     public int hashCode()
     {
-        // mostly auto-generated; modified to accept null children == empty children
+        // mostly auto-generated; reformated & modified to accept null empty
 
-        int result = name != null ? name.hashCode() : 0;
+        int result = accessor != null ? accessor.hashCode() : 0;
         result = 31 * result + (value != null ? value.hashCode() : 0);
+        result = 31 * result + (tags == null || tags.isEmpty() ? 0 : tags.hashCode());
         result = 31 * result + (children == null || children.isEmpty() ? 0 : children.hashCode());
-        result = 31 * result + (grouped ? 1 : 0);
+        result = 31 * result + (group ? 1 : 0);
         return result;
     }
 

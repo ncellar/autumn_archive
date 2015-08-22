@@ -1,19 +1,16 @@
 package com.norswap.autumn.test.parsing;
 
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.Source;
-import com.norswap.autumn.test.Ensure;
 import com.norswap.autumn.test.TestRunner;
 
 import static com.norswap.autumn.parsing.ParsingExpressionFactory.*;
+import static com.norswap.autumn.test.parsing.Common.*;
 
 public final class OperatorTests
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     boolean testDumb = false;
-
-    Source src;
 
     ParsingExpression pe;
 
@@ -71,18 +68,14 @@ public final class OperatorTests
 
     public void testLiteral()
     {
-        pe = pe(literal("test"));
-        src = Source.fromString("test");
-        Ensure.match(src, pe);
+        ensureMatch(pe(literal("test")), "test");
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public void testAny()
     {
-        pe = pe(any());
-        src = Source.fromString("x");
-        Ensure.match(src, pe);
+        ensureMatch(pe(any()), "x");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -90,12 +83,8 @@ public final class OperatorTests
     public void testCharRange()
     {
         pe = pe(charRange('a', 'c'));
-
-        src = Source.fromString("a");
-        Ensure.match(src, pe);
-
-        src = Source.fromString("c");
-        Ensure.match(src, pe);
+        ensureMatch(pe, "a");
+        ensureMatch(pe, "c");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -103,21 +92,15 @@ public final class OperatorTests
     public void testCharSet()
     {
         pe = pe(charSet("abc"));
-
-        src = Source.fromString("a");
-        Ensure.match(src, pe);
-
-        src = Source.fromString("c");
-        Ensure.match(src, pe);
+        ensureMatch(pe, "a");
+        ensureMatch(pe, "c");
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public void testSequence()
     {
-        pe = pe(sequence(literal("a"), literal("b"), literal("c")));
-        src = Source.fromString("abc");
-        Ensure.match(src, pe);
+        ensureMatch(pe(sequence(literal("a"), literal("b"), literal("c"))), "abc");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -125,12 +108,8 @@ public final class OperatorTests
     public void testChoice()
     {
         pe = pe(choice(literal("a"), literal("b"), literal("c")));
-
-        src = Source.fromString("a");
-        Ensure.match(src, pe);
-
-        src = Source.fromString("c");
-        Ensure.match(src, pe);
+        ensureMatch(pe, "a");
+        ensureMatch(pe, "c");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -138,12 +117,8 @@ public final class OperatorTests
     public void testOptional()
     {
         pe = pe(optional(literal("a")));
-
-        src = Source.fromString("a");
-        Ensure.match(src, pe);
-
-        src = Source.fromString("");
-        Ensure.match(src, pe);
+        ensureMatch(pe, "a");
+        ensureMatch(pe, "");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -151,12 +126,8 @@ public final class OperatorTests
     public void testZeroMore()
     {
         pe = pe(zeroMore(literal("a")));
-
-        src = Source.fromString("aaaa");
-        Ensure.match(src, pe);
-
-        src = Source.fromString("");
-        Ensure.match(src, pe);
+        ensureMatch(pe, "aaaa");
+        ensureMatch(pe, "");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -164,21 +135,15 @@ public final class OperatorTests
     public void testOneMore()
     {
         pe = pe(oneMore(literal("a")));
-
-        src = Source.fromString("aaaa");
-        Ensure.match(src, pe);
-
-        src = Source.fromString("");
-        Ensure.fails(src, pe);
+        ensureMatch(pe, "aaaa");
+        ensureFail(pe, "");
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public void testLookahead()
     {
-        pe = pe(lookahead(literal("test")));
-        src = Source.fromString("test");
-        Ensure.noFail(src, pe);
+        ensureSuccess(pe(lookahead(literal("test"))), "test");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -186,12 +151,8 @@ public final class OperatorTests
     public void testNot()
     {
         pe = pe(not(literal("test")));
-
-        src = Source.fromString("bird");
-        Ensure.noFail(src, pe);
-
-        src = Source.fromString("test");
-        Ensure.fails(src, pe);
+        ensureSuccess(pe, "bird");
+        ensureFail(pe, "test");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -199,8 +160,7 @@ public final class OperatorTests
     public void testLongestMatch()
     {
         pe = pe(longestMatch(literal("a"), literal("ab"), literal("z"), literal("abc")));
-        src = Source.fromString("abc");
-        Ensure.match(src, pe);
+        ensureMatch(pe, "abc");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -212,11 +172,8 @@ public final class OperatorTests
         pe = pe(cuttable("test", sequence(cut("test"), literal("a")), literal("b")));
         testDumb = oldTestDumb;
 
-        src = Source.fromString("a");
-        Ensure.match(src, pe);
-
-        src = Source.fromString("b");
-        Ensure.fails(src, pe);
+        ensureMatch(pe, "a");
+        ensureFail(pe, "b");
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

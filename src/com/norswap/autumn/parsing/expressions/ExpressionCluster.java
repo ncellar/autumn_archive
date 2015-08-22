@@ -1,11 +1,13 @@
 package com.norswap.autumn.parsing.expressions;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.OutputChanges;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
+import com.norswap.autumn.parsing.expressions.common.NaryParsingExpression;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
-import com.norswap.autumn.util.DeepCopy;
+import com.norswap.autumn.parsing.graph.Nullability;
+import com.norswap.util.DeepCopy;
 
 import java.util.Arrays;
 
@@ -22,55 +24,38 @@ public final class ExpressionCluster extends ParsingExpression
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // TODO use this?
-    public final static class Group implements DeepCopy
+    public final static class Group extends NaryParsingExpression
     {
         public int precedence;
         public boolean leftRecursive;
         public boolean leftAssociative;
-        public ParsingExpression[] operands;
 
         @Override
-        public Group deepCopy()
+        public void parse(Parser parser, ParseState state)
         {
-            Group copy = DeepCopy.clone(this);
-            copy.operands = DeepCopy.of(operands, ParsingExpression[]::new);
-            return copy;
+            throw new Error("The parse method of " + getClass().getName()
+                + " is not supposed to be called.");
+        }
+
+        @Override
+        public String ownPrintableData()
+        {
+            return "precedence: " + precedence + ", " +
+                (leftAssociative
+                    ? "associative"
+                    : leftRecursive
+                        ? "recursive"
+                        : "");
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    public final static class Operand implements DeepCopy
-    {
-        public ParsingExpression operand;
-        public int precedence;
-        public boolean leftRecursive;
-        public boolean leftAssociative;
-
-
-        @Override
-        public Operand deepCopy()
-        {
-            Operand copy = DeepCopy.clone(this);
-            copy.operand = operand.deepCopy();
-            return copy;
-        }
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /*
-     * Each sub-array is a group that holds alternates of similar precedence. The array is sorted
-      * in order of decreasing precedence.
-     */
-    public Operand[][] groups;
 
     /**
-     * Each sub-array is a sub-group of the corresponding group in {@link #groups}, holding only
-     * the left-recursive operands.
+     * Each groups holds alternates of similar precedence. The array is sorted
+     * in order of decreasing precedence.
      */
-    public Operand[][] recursiveGroups;
+    public Group[] groups;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -87,7 +72,7 @@ public final class ExpressionCluster extends ParsingExpression
 
         if (changes != null)
         {
-            // If this cluster is already in the process of being parsed at this position; use
+            // If this cluster is already in the process of being parsed at this position, use
             // the seed value.
 
             changes.mergeInto(state);
@@ -100,27 +85,23 @@ public final class ExpressionCluster extends ParsingExpression
 
         // Because of precedence, memoized results might not be correct (might have been obtained
         // with another precedence).
-
         final int oldFlags = state.flags;
         state.forbidMemoization();
 
+        // Get minimum precedence if we're already parsing this cluster (else it's 0).
         final int minPrecedence = parser.enterPrecedence(this, state.start, 0);
 
         // Used to sometimes inhibit error reporting.
         boolean report = true;
 
-        for (int i = 0; i < groups.length; ++i)
+        for (Group group : groups)
         {
-            Operand[] group = groups[i], recursiveGroup = recursiveGroups[i];
-
-            int groupPrecedence = group[0].precedence;
-
             // This condition, coupled with the subsequent {@link Parser#setMinPrecedence} call,
             // blocks recursion into alternates of lower precedence. It also blocks recursion into
-            // alternates of the same precedence if the current alternate is left-associative; in
+            // alternates of the same precedence if the current alternate is left-associative, in
             // order to prevent right-recursion (left-recursion is handled via the seed).
 
-            if (groupPrecedence < minPrecedence)
+            if (group.precedence < minPrecedence)
             {
                 if (changes.failed())
                 {
@@ -137,26 +118,25 @@ public final class ExpressionCluster extends ParsingExpression
                 break;
             }
 
-            parser.setMinPrecedence(
-                groupPrecedence + (group[0].leftAssociative ? 1 : 0));
+            parser.setMinPrecedence(group.precedence + (group.leftAssociative ? 1 : 0));
 
             while (true)
             {
                 OutputChanges oldChanges = changes;
 
-                for (Operand operand: group)
+                for (ParsingExpression operand: group.operands)
                 {
-                    operand.operand.parse(parser, state);
+                    operand.parse(parser, state);
 
                     if (state.end > changes.end
-                        || groupPrecedence > changesPrecedence && state.end != -1)
+                        || group.precedence > changesPrecedence && state.end != -1)
                     {
                         // The seed was grown, try to grow it again starting from the first
                         // recursive rule.
 
-                        parser.clusterAlternate = operand.operand;
+                        parser.clusterAlternate = operand;
                         changes = new OutputChanges(state);
-                        changesPrecedence = groupPrecedence;
+                        changesPrecedence = group.precedence;
                         state.setSeed(changes);
                         state.resetAllOutput();
                         break;
@@ -179,7 +159,9 @@ public final class ExpressionCluster extends ParsingExpression
                 }
 
                 // Non-left recursive rules will not yield longer matches, so no use trying them.
-                group = recursiveGroup;
+                if (!group.leftRecursive) {
+                    break;
+                }
             }
         }
 
@@ -197,13 +179,13 @@ public final class ExpressionCluster extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         builder.append("expr(");
 
         for (ParsingExpression operand: children())
         {
-            operand.toString(builder);
+            operand.appendTo(builder);
             builder.append(", ");
         }
 
@@ -221,8 +203,7 @@ public final class ExpressionCluster extends ParsingExpression
     public ParsingExpression[] children()
     {
         return Arrays.stream(groups)
-            .flatMap(Arrays::stream)
-            .map(o -> o.operand)
+            .flatMap(g -> Arrays.stream(g.operands))
             .toArray(ParsingExpression[]::new);
     }
 
@@ -233,15 +214,15 @@ public final class ExpressionCluster extends ParsingExpression
     {
         int pos = 0;
 
-        for (Operand[] group : groups)
+        for (Group group: groups)
         {
-            if (position < pos + group.length)
+            if (position < pos + group.operands.length)
             {
-                group[position - pos].operand = pe;
+                group.operands[position - pos] = pe;
                 return;
             }
 
-            pos += group.length;
+            pos += group.operands.length;
         }
 
         throw new RuntimeException(
@@ -251,39 +232,39 @@ public final class ExpressionCluster extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
+    public ExpressionCluster clone()
+    {
+        ExpressionCluster clone = (ExpressionCluster) super.clone();
+        clone.groups = DeepCopy.deepClone(groups);
+        return clone;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
     public ExpressionCluster deepCopy()
     {
         ExpressionCluster copy = (ExpressionCluster) super.deepCopy();
-
-        copy.groups = new Operand[groups.length][];
-        copy.recursiveGroups = new Operand[groups.length][];
-
-        for (int i = 0; i < groups.length; ++i)
-        {
-            copy.groups[i] = DeepCopy.of(groups[i], Operand[]::new);
-            copy.recursiveGroups[i] = DeepCopy.of(recursiveGroups[i], Operand[]::new);
-        }
-
+        copy.groups = DeepCopy.of(groups);
         return copy;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
-        return Nullability.any(this, firsts());
+        return Nullability.any(this, firsts(grammar));
     }
 
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public ParsingExpression[] firsts()
+    public ParsingExpression[] firsts(Grammar grammar)
     {
         return Arrays.stream(groups)
-            .flatMap(Arrays::stream)
-            .filter(o -> !o.leftRecursive)
-            .map(o -> o.operand)
+            .filter(g -> !g.leftRecursive)
+            .flatMap(g -> Arrays.stream(g.operands))
             .toArray(ParsingExpression[]::new);
     }
 

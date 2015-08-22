@@ -1,7 +1,8 @@
 package com.norswap.autumn.test.benchmark;
 
 import com.norswap.autumn.test.rats.RatsJava7Parser;
-import com.norswap.autumn.util.Glob;
+import com.norswap.util.Array;
+import com.norswap.util.Glob;
 import xtc.parser.ParseError;
 import xtc.parser.Result;
 import xtc.parser.SemanticValue;
@@ -25,14 +26,25 @@ public class RatsBench
 
     public static void main(String[] args) throws IOException
     {
+        Array<Duration> durations = new Array<>();
         Instant start = Instant.now();
-        int iters = 1;
+        Instant mid = start;
+        int iters = 20;
+
         for (int i = 0; i < iters; ++i)
         {
-            parseDirectory("../guava");
+            parseDirectory(
+                //"../guava");
+                "/Users/nilaurent/Documents/spring-framework");
+
+            Instant tmp = Instant.now();
+            durations.add(Duration.between(mid, tmp));
+            mid = tmp;
         }
+
         Instant end = Instant.now();
-        System.out.println("Guava parsed in: " + Duration.between(start, end).dividedBy(iters));
+        System.out.println("Code parsed in: " + Duration.between(start, end).dividedBy(iters));
+        System.out.println(durations);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -71,7 +83,9 @@ public class RatsBench
                 {
                     System.out.println(v.value.toString());
                 }
-                */
+
+                return;
+                //*/
             }
             else
             {

@@ -1,7 +1,7 @@
 package com.norswap.autumn.parsing;
 
-import com.norswap.autumn.util.FlagFactory;
-import com.norswap.autumn.util.HandleFactory;
+import com.norswap.util.FlagFactory;
+import com.norswap.util.HandleFactory;
 
 /**
  * The registry manages flags and handle spaces for the parser.
@@ -55,14 +55,20 @@ public final class Registry
         = ParsingExpressionFlagsFactory.next();
 
     /**
+     * (For {@code Capture} only) Indicates a capture should be performed.
+     */
+    public static final int PEF_CAPTURE
+        = ParsingExpressionFlagsFactory.next();
+
+    /**
      * (For {@code Capture} only) Indicates the matched text should be captured.
      */
     public static final int PEF_CAPTURE_TEXT
         = ParsingExpressionFlagsFactory.next();
 
     /**
-     * (For {@code Capture} only) Indicates that tree nodes resulting from this capture should be
-     * grouped together under a tree node sporting the capture name.
+     * (For {@code Capture} only) Indicates that captures should be added to a group corresponding
+     * to their accessor.
      */
     public static final int PEF_CAPTURE_GROUPED
         = ParsingExpressionFlagsFactory.next();
@@ -84,16 +90,16 @@ public final class Registry
         = ParseStateFlagsFactory.next();
 
     /**
-     * Indicates that we shouldn't memoize any expression at the current position.
-     */
-    public static final int PSF_DONT_MEMOIZE_POSITION
-        = ParseStateFlagsFactory.next();
-
-    /**
      * Indicates that we shouldn't record errors when sub-expressions of the expression
      * associated with this parse state fail to parse.
      */
     public static final int PSF_DONT_RECORD_ERRORS
+        = ParseStateFlagsFactory.next();
+
+    /**
+     * Indicates that captures should be added to a group corresponding to their accessor.
+     */
+    public static final int PSF_GROUPING_CAPTURE
         = ParseStateFlagsFactory.next();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

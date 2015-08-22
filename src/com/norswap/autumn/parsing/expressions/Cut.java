@@ -1,9 +1,10 @@
 package com.norswap.autumn.parsing.expressions;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
+import com.norswap.autumn.parsing.graph.Nullability;
 
 
 /**
@@ -31,17 +32,25 @@ public final class Cut extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         builder.append("cut(\"");
         builder.append(name);
         builder.append("\")");
     }
 
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public String ownPrintableData()
+    {
+        return "name: " + name;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
         return Nullability.yes(this);
     }

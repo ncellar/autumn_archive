@@ -34,6 +34,9 @@ Assuming the jar file and the grammar are in the working directory.
 
 Grammar file: http://www.romanredz.se/papers/Java.1.8.peg
 
+Note that a newer (1.7) version of Mouse was released shortly after the paper was accepted.
+I did test it, and it performs worse than the 1.6.1 version.
+
 ## Parboiled
 
 By extracting the Java 6 parser example from the parboiled repo:

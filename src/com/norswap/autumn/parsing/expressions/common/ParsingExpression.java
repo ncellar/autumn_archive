@@ -1,13 +1,14 @@
 package com.norswap.autumn.parsing.expressions.common;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.Registry;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
-import com.norswap.autumn.util.Caster;
-import com.norswap.autumn.util.DeepCopy;
-import com.norswap.autumn.util.Exceptions;
-import com.norswap.autumn.util.HandleMap;
+import com.norswap.autumn.parsing.graph.Nullability;
+import com.norswap.util.Caster;
+import com.norswap.util.DeepCopy;
+import com.norswap.util.Exceptions;
+import com.norswap.util.HandleMap;
 
 /**
  * A parsing expression is matched to the source text by recursively invoking the {@link #parse}
@@ -37,7 +38,7 @@ public abstract class ParsingExpression implements DeepCopy
     public int parseDumb(Parser parser, int position)
     {
         throw new UnsupportedOperationException(
-            "Parsing expression class "
+            "Parsing expression [" + this + "] of class "
             + this.getClass().getSimpleName()
             + " doesn't support dumb parsing.");
     }
@@ -56,19 +57,16 @@ public abstract class ParsingExpression implements DeepCopy
     public final String toString()
     {
         StringBuilder builder = new StringBuilder();
-        toString(builder);
+        appendTo(builder);
         return builder.toString();
     }
 
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * Similar to {@code builder.append(this.toString())}.
-     * {@link #toString} uses this method internally.
-     *
-     * Implemented by writing the name if there is one or else by calling {@link #appendTo}.
+     * {@code builder.append(this.toString())}
      */
-    public final void toString(StringBuilder builder)
+    public final void appendTo(StringBuilder builder)
     {
         String name = name();
 
@@ -78,7 +76,7 @@ public abstract class ParsingExpression implements DeepCopy
         }
         else
         {
-            appendTo(builder);
+            appendContentTo(builder);
         }
     }
 
@@ -88,10 +86,10 @@ public abstract class ParsingExpression implements DeepCopy
      * Like {@link #toString()}, but never writes the name of an expression instead of its content.
      * As a result, this *can not* be used to print recursive expressions.
      */
-    public final String toStringFull()
+    public final String toContentString()
     {
         StringBuilder builder = new StringBuilder();
-        appendTo(builder);
+        appendContentTo(builder);
         return builder.toString();
     }
 
@@ -99,11 +97,25 @@ public abstract class ParsingExpression implements DeepCopy
 
     /**
      * Appends a string representation of this expression (but never its name) to the builder.
+     * <p>
+     * Called by {@link #toString()} and {@link #appendTo(StringBuilder)} if the expression isn't
+     * named; and by {@link #toContentString()}.
      */
-    public abstract void appendTo(StringBuilder builder);
+    public abstract void appendContentTo(StringBuilder builder);
+
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Returns a string containing information about the expression that isn't contained in its
+     * type or its children.
+     */
+    public String ownPrintableData()
+    {
+        return "";
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // TREE WALKING
+    // GRAPH WALKING
 
     // ---------------------------------------------------------------------------------------------
 
@@ -142,14 +154,14 @@ public abstract class ParsingExpression implements DeepCopy
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // PROPERTIES
 
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
         return Nullability.no(this);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public ParsingExpression[] firsts()
+    public ParsingExpression[] firsts(Grammar grammar)
     {
         return new ParsingExpression[0];
     }

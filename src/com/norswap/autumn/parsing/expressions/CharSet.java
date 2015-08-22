@@ -3,7 +3,7 @@ package com.norswap.autumn.parsing.expressions;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.util.StringEscape;
+import com.norswap.util.StringEscape;
 
 /**
  * Attempts to match the next input character to a range of characters.
@@ -58,11 +58,19 @@ public final class CharSet extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         builder.append("charSet(\"");
         builder.append(StringEscape.escape(new String(chars)));
         builder.append("\")");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public String ownPrintableData()
+    {
+        return toString();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

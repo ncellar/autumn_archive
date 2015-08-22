@@ -4,7 +4,7 @@ import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
 import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
-import com.norswap.autumn.util.Array;
+import com.norswap.util.Array;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -63,16 +63,25 @@ public final class Filter extends UnaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         builder.append("filter(");
-        builder.append(new Array<>(allowed));
+        builder.append(Array.fromArray(allowed));
         builder.append(",");
-        builder.append(new Array<>(forbidden));
+        builder.append(Array.fromArray(forbidden));
         builder.append(",");
-        operand.toString(builder);
+        operand.appendTo(builder);
         builder.append(")");
     }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public String ownPrintableData()
+    {
+        return "allowed: " + allowed.length + ", forbidden: " + forbidden.length;
+    }
+
 
     // ---------------------------------------------------------------------------------------------
 

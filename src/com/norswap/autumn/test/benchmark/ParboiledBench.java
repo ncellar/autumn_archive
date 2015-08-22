@@ -1,7 +1,8 @@
 package com.norswap.autumn.test.benchmark;
 
 import com.norswap.autumn.test.parboiled.ParboiledJava6Parser;
-import com.norswap.autumn.util.Glob;
+import com.norswap.util.Array;
+import com.norswap.util.Glob;
 import org.parboiled.Parboiled;
 import org.parboiled.Rule;
 import org.parboiled.parserunners.ReportingParseRunner;
@@ -24,16 +25,28 @@ public class ParboiledBench
     public static void main(String[] args) throws IOException
     {
         ParboiledJava6Parser parser = Parboiled.createParser(ParboiledJava6Parser.class);
-        Rule root = parser.CompilationUnit().suppressNode(); // don't build parse tree
+        Rule root = parser.CompilationUnit();
+        // Rule root = parser.CompilationUnit().suppressNode(); // don't build parse tree
 
+        Array<Duration> durations = new Array<>();
         Instant start = Instant.now();
-        int iters = 1;
+        Instant mid = start;
+        int iters = 20;
+
         for (int i = 0; i < iters; ++i)
         {
-            parseDirectory("../guava", root);
+            parseDirectory(
+                //"../guava", root);
+                "/Users/nilaurent/Documents/spring-framework", root);
+
+            Instant tmp = Instant.now();
+            durations.add(Duration.between(mid, tmp));
+            mid = tmp;
         }
+
         Instant end = Instant.now();
-        System.out.println("Guava parsed in: " + Duration.between(start, end).dividedBy(iters));
+        System.out.println("Code parsed in: " + Duration.between(start, end).dividedBy(iters));
+        System.out.println(durations);
     }
 
     // ---------------------------------------------------------------------------------------------

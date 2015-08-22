@@ -1,6 +1,6 @@
 package com.norswap.autumn.parsing.expressions.common;
 
-import com.norswap.autumn.util.DeepCopy;
+import com.norswap.util.DeepCopy;
 
 /**
  *  Base implementation for parsing expression with an array of operands.
@@ -14,10 +14,10 @@ public abstract class NaryParsingExpression extends ParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         String name = this.getClass().getSimpleName();
-        name = name.substring(0,1).toLowerCase() + name.substring(1).toLowerCase();
+        name = name.substring(0,1).toLowerCase() + name.substring(1);
 
         builder.append(name);
         builder.append("(");
@@ -26,7 +26,7 @@ public abstract class NaryParsingExpression extends ParsingExpression
         {
             for (ParsingExpression operand: operands)
             {
-                operand.toString(builder);
+                operand.appendTo(builder);
                 builder.append(", ");
             }
 
@@ -50,6 +50,16 @@ public abstract class NaryParsingExpression extends ParsingExpression
     public void setChild(int position, ParsingExpression pe)
     {
         operands[position] = pe;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public NaryParsingExpression clone()
+    {
+        NaryParsingExpression clone = (NaryParsingExpression) super.clone();
+        clone.operands = operands.clone();
+        return clone;
     }
 
     // ---------------------------------------------------------------------------------------------

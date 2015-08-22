@@ -44,7 +44,7 @@ public class JSBridge
 
     public String lineAndColumn(int position)
     {
-        TextPosition tpos = DEBUGGER.parser.source().position(position);
+        TextPosition tpos = DEBUGGER.source.position(position);
         return tpos.line + "," + tpos.column;
     }
 
@@ -52,7 +52,7 @@ public class JSBridge
 
     public int fileOffset(int line, int column)
     {
-        return DEBUGGER.parser.source().fileOffset(line, column);
+        return DEBUGGER.source.fileOffset(line, column);
     }
 
     // ---------------------------------------------------------------------------------------------

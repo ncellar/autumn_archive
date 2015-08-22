@@ -1832,8 +1832,7 @@ var firebug = {
     },
     mouse:function(_event){
       with(firebug){
-      
-        // TODO: xxxpedro
+
         if(d.inspector.enabled){
           var target;
           var borderInspector = el.borderInspector.environment.getElement();

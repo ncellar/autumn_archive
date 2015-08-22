@@ -4,7 +4,7 @@ import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.InstrumentedExpression;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.util.Array;
+import com.norswap.util.Array;
 
 import static com.norswap.autumn.parsing.Registry.PSH_STACK_TRACE;
 

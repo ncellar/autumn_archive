@@ -1,12 +1,10 @@
 package com.norswap.autumn.parsing.debug;
 
-import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.ParserConfiguration;
+import com.norswap.autumn.Autumn;
 import com.norswap.autumn.parsing.Source;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.graph.FunctionalTransformer;
-import com.norswap.autumn.parsing.support.GrammarDriver;
-import com.norswap.autumn.util.Exceptions;
+import com.norswap.autumn.parsing.graph.Walks;
+import com.norswap.util.graph_visit.GraphTransformer;
 import javafx.application.Application;
 import javafx.concurrent.Worker;
 import javafx.scene.Scene;
@@ -30,17 +28,19 @@ public class GUI extends Application
     public static void main(String[] args) throws IOException
     {
         String grammarFile = "src/com/norswap/autumn/test/grammars/Java8.autumn";
-        DEBUGGER.grammar = FunctionalTransformer.apply(
-            GrammarDriver.compile(grammarFile),
-            pe -> {
-                Breakpoint out = new Breakpoint();
-                out.operand = pe;
-                return out;
-            },
-            true);
 
-        file = "src/com/norswap/autumn/parsing/Parser.java";
+        DEBUGGER.grammar = Autumn.grammarFromFile(grammarFile)
+            .walk(GraphTransformer.from(GUI::transform, Walks.inPlace));
+
+        DEBUGGER.source = Source.fromFile("src/com/norswap/autumn/parsing/Parser.java");
         launch(args);
+    }
+
+    public static ParsingExpression transform(ParsingExpression pe)
+    {
+        Breakpoint out = new Breakpoint();
+        out.operand = pe;
+        return out;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,9 +48,6 @@ public class GUI extends Application
     @Override
     public void start(Stage primaryStage)
     {
-        DEBUGGER.parser =
-            new Parser(Exceptions.swallow(() -> Source.fromFile(file)), new ParserConfiguration());
-
         WebView root = new WebView();
         WebEngine engine = root.getEngine();
 
@@ -58,7 +55,7 @@ public class GUI extends Application
             ClassLoader.getSystemResource("debugger/debugger.html").toExternalForm());
 
         JSBridge bridge = new JSBridge();
-        bridge._text = DEBUGGER.parser.text.toString();
+        bridge._text = DEBUGGER.source.text().toString();
 
 
         engine.getLoadWorker().stateProperty().addListener((observable, oldState, newState) ->

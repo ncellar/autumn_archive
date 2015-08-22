@@ -1,19 +1,22 @@
 package com.norswap.autumn.parsing.support;
 
+import com.norswap.autumn.Autumn;
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseTree;
-import com.norswap.autumn.parsing.expressions.DropPrecedence;
+import com.norswap.autumn.parsing.Whitespace;
+import com.norswap.autumn.parsing.expressions.ExpressionCluster.Group;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
 import com.norswap.autumn.parsing.ParsingExpressionFactory;
-import com.norswap.autumn.parsing.expressions.ExpressionCluster.Operand;
 import com.norswap.autumn.parsing.expressions.Reference;
-import com.norswap.autumn.util.Array;
-import com.norswap.autumn.util.Streams;
+import com.norswap.util.Array;
+import com.norswap.util.Counter;
+import com.norswap.util.Streams;
 
+import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 import static com.norswap.autumn.parsing.ParsingExpressionFactory.*;
-import static com.norswap.autumn.util.StringEscape.unescape;
+import static com.norswap.util.StringEscape.unescape;
 
 public final class GrammarCompiler
 {
@@ -33,9 +36,18 @@ public final class GrammarCompiler
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static ParsingExpression[] compile(ParseTree tree)
+    public static Grammar compile(ParseTree tree)
     {
-        return new GrammarCompiler().run(tree);
+        Array<ParsingExpression> exprs = new GrammarCompiler().run(tree);
+
+        ParsingExpression whitespace = exprs.stream()
+            .filter(rule -> "Spacing".equals(rule.name()))
+            .findFirst().orElse(Whitespace.DEFAULT());
+
+        // TODO enable setting whitespace & root from grammar file
+
+        return Autumn.grammarFromExpression(
+            exprs.get(0), exprs, whitespace, true, true);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -46,14 +58,14 @@ public final class GrammarCompiler
      *
      * Note that the references inside these expressions are not resolved.
      */
-    public ParsingExpression[] run(ParseTree tree)
+    public Array<ParsingExpression> run(ParseTree tree)
     {
-        ParseTree rules = tree.group("rules");
+        Array<ParsingExpression> out = new Array<>(
+            Streams.from(tree.group("rules"))
+                .map(this::compileRule).toArray(ParsingExpression[]::new));
 
-        return Stream.concat(
-                Streams.from(rules).map(this::compileRule),
-                Streams.from(namedClusterAlternates))
-            .toArray(ParsingExpression[]::new);
+        out.addAll(namedClusterAlternates);
+        return out;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -61,7 +73,10 @@ public final class GrammarCompiler
     private ParsingExpression compileRule(ParseTree rule)
     {
         String ruleName = rule.value("ruleName");
-        ParsingExpression topChoice = compileTopChoice(rule.group("alts"));
+
+        ParsingExpression topChoice = rule.has("cluster")
+            ? compileCluster(rule.get("cluster"))
+            : compilePE(rule.get("expr").child());
 
         if (rule.has("dumb"))
         {
@@ -73,17 +88,9 @@ public final class GrammarCompiler
             topChoice = token(topChoice);
         }
 
+        topChoice = compileCapture(topChoice, rule.group("captureSuffixes"));
+
         return named$(ruleName, topChoice);
-    }
-
-
-    // ---------------------------------------------------------------------------------------------
-
-    private ParsingExpression compileChoiceAlt(ParseTree alt)
-    {
-        return alt.name.equals("sequence")
-            ? compileSequence(alt)
-            : compileExpression(alt);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -105,261 +112,277 @@ public final class GrammarCompiler
 
     // ---------------------------------------------------------------------------------------------
 
-    private ParsingExpression compileTopChoice(ParseTree alts)
+    private ParsingExpression compileCluster(ParseTree expression)
     {
-        return compileOneOrGroup(
-            t -> compileChoiceAlt(t.child(0)),
-            exprs -> choice(exprs),
-            alts);
-    }
+        final int UNSET = -1;
 
-    // ---------------------------------------------------------------------------------------------
-
-    private ParsingExpression compileChoice(ParseTree choice)
-    {
-        return compileOneOrGroup(
-            t -> compileChoiceAlt(t),
-            exprs -> choice(exprs),
-            choice);
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    private ParsingExpression compileExpression(ParseTree expression)
-    {
-        final int UNSET = -1, MULTISET = -2, SET = 1;
-
-        class $ {
-            int precedence = 0;
-            boolean leftRecur = false;
-            boolean leftAssoc = false;
-        }
-        $ last = new $();
-
+        Counter currentPrecedence = new Counter(0);
         Array<ParsingExpression> namedAlternates = new Array<>();
+        Array<Group> groups = new Array<>();
+        Array<Array<ParsingExpression>> alts = new Array<>();
 
-        ParsingExpression cluster = cluster(Streams.from(expression.group("alts"))
-            .map(alt ->
-            {
-                ParsingExpression pe = compileSequence(alt.get("sequence"));
-                Operand operand = new Operand();
-                int precedence = UNSET;
-
-                for (ParseTree annotation : alt.group("annotations"))
-                {
-                    annotation = annotation.child(0);
-
-                    switch (annotation.name)
-                    {
-                        case "precedence":
-                            precedence = precedence == -1
-                                ? Integer.parseInt(annotation.value)
-                                : MULTISET;
-                            break;
-
-                        case "increment":
-                            precedence = precedence == -1
-                                ? last.precedence + 1
-                                : MULTISET;
-                            break;
-
-                        case "same":
-                            precedence = precedence == -1
-                                ? last.precedence
-                                : MULTISET;
-                            break;
-
-                        case "left_assoc":
-                            operand.leftRecursive = true;
-                            operand.leftAssociative = true;
-                            break;
-
-                        case "left_recur":
-                            operand.leftRecursive = true;
-                            break;
-
-                        case "name":
-                            pe.setName(annotation.value);
-                            namedAlternates.push(pe);
-                            break;
-                    }
-                }
-
-                if (precedence == 0)
-                {
-                    throw new RuntimeException(
-                        "Precedence can't be 0. Don't use @0; or use @= in first position.");
-                }
-
-                if (precedence == UNSET)
-                {
-                    throw new RuntimeException(
-                        "Expression alternate does not specify precedence.");
-                }
-
-                if (precedence == MULTISET)
-                {
-                    throw new RuntimeException(
-                        "Expression specifies precedence more than once.");
-                }
-
-                operand.operand = pe;
-                operand.precedence = precedence;
-
-                if (precedence != last.precedence)
-                {
-                    last.leftAssoc = operand.leftAssociative;
-                    last.leftRecur = operand.leftRecursive;
-                    last.precedence = precedence;
-                }
-                else
-                {
-                    if (operand.leftAssociative)
-                    {
-                        throw new RuntimeException(
-                            "@left_assoc annotation not on the item with its precedence.");
-                    }
-
-                    if (operand.leftRecursive)
-                    {
-                        throw new RuntimeException(
-                            "@left_recur annotation not on the item with its precedence.");
-                    }
-
-                    operand.leftAssociative = last.leftAssoc;
-                    operand.leftRecursive = last.leftRecur;
-                }
-
-                return operand;
-
-            }).toArray(Operand[]::new));
-
-        for (int i = 0; i < namedAlternates.size(); ++i)
+        for (ParseTree alt: expression.group("alts"))
         {
-            namedClusterAlternates.push(namedAlternates.get(i));
+            ParsingExpression pe = compilePE(alt.get("expr").child());
+
+            int precedence = UNSET;
+            int psets = 0;
+            boolean leftRecursive = false;
+            boolean leftAssociative = false;
+
+            for (ParseTree annotation : alt.group("annotations"))
+            {
+                annotation = annotation.child();
+
+                switch (annotation.accessor)
+                {
+                    case "precedence":
+                        precedence = Integer.parseInt(annotation.value);
+                        ++psets;
+                        break;
+
+                    case "increment":
+                        precedence = currentPrecedence.i + 1;
+                        ++psets;
+                        break;
+
+                    case "same":
+                        precedence = currentPrecedence.i;
+                        ++psets;
+                        break;
+
+                    case "left_assoc":
+                        leftRecursive = true;
+                        leftAssociative = true;
+                        break;
+
+                    case "left_recur":
+                        leftRecursive = true;
+                        break;
+
+                    case "name":
+                        pe.setName(annotation.value);
+                        namedAlternates.push(pe);
+                        break;
+                }
+            }
+
+            if (psets > 1)
+            {
+                throw new RuntimeException(
+                    "Expression specifies precedence more than once.");
+            }
+
+            if (precedence == 0)
+            {
+                throw new RuntimeException(
+                    "Precedence can't be 0. Don't use @0; or use @= in first position.");
+            }
+
+            if (precedence == UNSET)
+            {
+                throw new RuntimeException(
+                    "Expression alternate does not specify precedence.");
+            }
+
+            if (precedence < currentPrecedence.i)
+            {
+                throw new RuntimeException(
+                    "Alternates must be grouped by precedence in expression cluster.");
+            }
+            else if (precedence == currentPrecedence.i)
+            {
+                if (leftRecursive)
+                {
+                    throw new RuntimeException(
+                        "Can't specify left-recursion or left-associativity on non-first "
+                            + "alternate of a precedence group in an expression cluster.");
+                }
+
+                alts.get(precedence).push(pe);
+            }
+            else
+            {
+                groups.put(precedence, group(precedence, leftRecursive, leftAssociative, (Group[]) null));
+                alts.put(precedence, new Array<>(pe));
+                ++currentPrecedence.i;
+            }
         }
 
-        return cluster;
-    }
+        namedAlternates.forEach(namedClusterAlternates::push);
 
-    // ---------------------------------------------------------------------------------------------
+        // Build the groups
 
-    private ParsingExpression compileSequence(ParseTree sequence)
-    {
-        return compileOneOrGroup(
-            tree -> compilePrefixed(tree),
-            exprs -> sequence(exprs),
-            sequence);
-    }
+        Array<Group> groupsArray = new Array<>();
 
-    // ---------------------------------------------------------------------------------------------
-
-    private ParsingExpression compilePrefixed(ParseTree prefixed)
-    {
-        switch (prefixed.name)
+        for (int i = 0; i < groups.size(); ++i)
         {
+            Group group = groups.get(i);
+
+            if (group == null) {
+                continue;
+            }
+
+            group.operands = alts.get(i).toArray(ParsingExpression[]::new);
+            groupsArray.push(group);
+        }
+
+        return cluster(groupsArray.toArray(Group[]::new));
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private ParsingExpression compileRef(ParseTree tree)
+    {
+        Reference ref = reference(tree.value("name"));
+
+        ParseTree allowed = tree.getOrNull("allowed");
+        ParseTree forbidden = tree.getOrNull("forbidden");
+
+        if (allowed != null || forbidden != null)
+        {
+            return filter(
+                allowed == null
+                    ? new ParsingExpression[0]
+                    : Streams.from(allowed)
+                        .map(pe -> reference(pe.value))
+                        .toArray(ParsingExpression[]::new),
+
+                forbidden == null
+                    ? new ParsingExpression[0]
+                    : Streams.from(forbidden)
+                        .map(pe -> reference(pe.value))
+                        .toArray(ParsingExpression[]::new),
+
+                ref
+            );
+        }
+        else {
+            return ref;
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    private ParsingExpression compileCapture(ParsingExpression child, List<ParseTree> suffixes)
+    {
+        ParsingExpression out = child;
+
+        for (ParseTree suffix: suffixes)
+        {
+            suffix = suffix.child();
+
+            switch (suffix.accessor)
+            {
+                case "capture":
+                    out = capture(suffix.has("captureText"), out);
+                    break;
+
+                case "accessor":
+                    out = accessor$(suffix.value("name"), out);
+                    break;
+
+                case "group":
+                    out = group$(suffix.value("name"), out);
+                    break;
+
+                case "tag":
+                    out = tag$(suffix.value("name"), out);
+                    break;
+
+                default:
+                    throw new RuntimeException("Unknown capture type: " + suffix.accessor);
+            }
+        }
+
+        return out;
+
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    private ParsingExpression[] compileChildren(ParseTree tree)
+    {
+        return tree.children.stream()
+            .map(this::compilePE)
+            .toArray(ParsingExpression[]::new);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    private ParsingExpression compilePE(ParseTree tree)
+    {
+        switch (tree.accessor)
+        {
+            case "choice":
+                return choice(compileChildren(tree));
+
+            case "sequence":
+                return sequence(compileChildren(tree));
+
             case "and":
-                return lookahead(compileSuffixed(prefixed.child()));
+                return lookahead(compilePE(tree.child()));
 
             case "not":
-                return not(compileSuffixed((prefixed.child())));
+                return not(compilePE(tree.child()));
 
-            default:
-                return compileSuffixed(prefixed);
-        }
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    private ParsingExpression compileSuffixed(ParseTree suffixed)
-    {
-        switch (suffixed.name)
-        {
             case "until":
                 return until(
-                    compilePrimary(suffixed.child(0)),
-                    compilePrimary(suffixed.child(1)));
+                    compilePE(tree.child(0)),
+                    compilePE(tree.child(1)));
 
             case "aloUntil":
                 return aloUntil(
-                    compilePrimary(suffixed.child(0)),
-                    compilePrimary(suffixed.child(1)));
+                    compilePE(tree.child(0)),
+                    compilePE(tree.child(1)));
+
+            case "separated":
+                return separated(
+                    compilePE(tree.child(0)),
+                    compilePE(tree.child(1)));
+
+            case "aloSeparated":
+                return aloSeparated(
+                    compilePE(tree.child(0)),
+                    compilePE(tree.child(1)));
 
             case "optional":
-                return optional(compilePrimary(suffixed.child()));
+                return optional(compilePE(tree.child()));
 
             case "zeroMore":
-                return zeroMore(compilePrimary(suffixed.child()));
+                return zeroMore(compilePE(tree.child()));
 
             case "oneMore":
-                return oneMore(compilePrimary(suffixed.child()));
+                return oneMore(compilePE(tree.child()));
 
-            default:
-                return compilePrimary(suffixed);
-        }
-    }
+            case "capture":
+                return compileCapture(compilePE(tree.child(0)), tree.group("captureSuffixes"));
 
-    // ---------------------------------------------------------------------------------------------
-
-    private ParsingExpression compilePrimary(ParseTree primary)
-    {
-        switch (primary.name)
-        {
-            case "choice":
-                return compileChoice(primary);
+            case "drop":
+                return exprDropPrecedence(compilePE(tree.child()));
 
             case "ref":
-                Reference ref = reference(primary.value("name"));
-
-                ParseTree allowed = primary.getOrNull("allowed");
-                ParseTree forbidden = primary.getOrNull("forbidden");
-
-                if (allowed != null || forbidden != null)
-                {
-                    return filter(
-                        allowed == null
-                            ? new ParsingExpression[0]
-                            : Streams.from(allowed)
-                                .map(pe -> reference(pe.value))
-                                .toArray(ParsingExpression[]::new),
-
-                        forbidden == null
-                            ? new ParsingExpression[0]
-                            : Streams.from(forbidden)
-                                .map(pe -> reference(pe.value))
-                                .toArray(ParsingExpression[]::new),
-
-                        ref
-                    );
-                }
-                else {
-                    return ref;
-                }
+                return compileRef(tree);
 
             case "any":
                 return any();
 
             case "charRange":
                 return charRange(
-                    unescape(primary.value("first")).charAt(0),
-                    unescape(primary.value("last")).charAt(0));
+                    unescape(tree.value("first")).charAt(0),
+                    unescape(tree.value("last")).charAt(0));
 
             case "charSet":
-                return charSet(unescape(primary.value("charSet")));
+                return charSet(unescape(tree.value("charSet")));
 
             case "notCharSet":
-                return notCharSet(unescape(primary.value("notCharSet")));
+                return notCharSet(unescape(tree.value("notCharSet")));
 
             case "stringLit":
-                return literal(unescape(primary.value("literal")));
-
-            case "drop":
-                DropPrecedence out = new DropPrecedence();
-                out.operand = compilePrimary(primary.child(0));
-                return out;
+                return literal(unescape(tree.value("literal")));
 
             default:
-                throw new RuntimeException("Primary expression with no name.");
+                throw new RuntimeException("Parsing expression with unknown name: " + tree.accessor);
         }
     }
 

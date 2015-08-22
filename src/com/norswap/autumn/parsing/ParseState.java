@@ -1,8 +1,8 @@
 package com.norswap.autumn.parsing;
 
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.util.Array;
-import com.norswap.autumn.util.HandleMap;
+import com.norswap.util.Array;
+import com.norswap.util.HandleMap;
 
 import static com.norswap.autumn.parsing.Registry.*; // PSF_*
 
@@ -16,6 +16,9 @@ public final class ParseState
 
     public int flags;
     public Array<Seed> seeds;
+
+    public String accessor;
+    public Array<String> tags;
 
     // output
     public int end;
@@ -35,6 +38,7 @@ public final class ParseState
         ParseState root = new ParseState();
         root.end = 0;
         root.blackEnd = 0;
+        root.tags = new Array<>();
         root.cuts = new Array<>();
         root.ext = new HandleMap();
         return root;
@@ -55,6 +59,8 @@ public final class ParseState
         this.precedence = parent.precedence;
         this.seeds = parent.seeds;
         this.flags = parent.flags;
+        this.accessor = parent.accessor;
+        this.tags = parent.tags;
         this.end = parent.end;
         this.blackEnd = parent.blackEnd;
         this.tree = parent.tree;
@@ -130,7 +136,6 @@ public final class ParseState
         if (end > start)
         {
             seeds = null;
-            clearFlags(PSF_DONT_MEMOIZE_POSITION);
         }
 
         start = end;
@@ -214,16 +219,9 @@ public final class ParseState
 
     // ---------------------------------------------------------------------------------------------
 
-    public void forbidMemoizationAtPosition()
-    {
-        setFlags(PSF_DONT_MEMOIZE_POSITION);
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
     public boolean isMemoizationForbidden()
     {
-        return hasFlagsSet(PSF_DONT_MEMOIZE | PSF_DONT_MEMOIZE_POSITION);
+        return hasFlagsSet(PSF_DONT_MEMOIZE);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -238,6 +236,20 @@ public final class ParseState
     public boolean isErrorRecordingForbidden()
     {
         return hasFlagsSet(PSF_DONT_RECORD_ERRORS);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public void setGroupingCapture()
+    {
+        setFlags(PSF_GROUPING_CAPTURE);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public boolean isCaptureGrouping()
+    {
+        return hasFlagsSet(PSF_GROUPING_CAPTURE);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,10 +1,12 @@
 package com.norswap.autumn.parsing.debug;
 
+import com.norswap.autumn.Autumn;
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseState;
-import com.norswap.autumn.parsing.Parser;
+import com.norswap.autumn.parsing.Source;
 import com.norswap.autumn.parsing.TextPosition;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.util.Array;
+import com.norswap.util.Array;
 import javafx.application.Platform;
 import netscape.javascript.JSObject;
 
@@ -24,9 +26,9 @@ public class Debugger
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    Parser parser;
+    Grammar grammar;
 
-    ParsingExpression[] grammar;
+    Source source;
 
     JSObject jsWindow;
 
@@ -34,7 +36,7 @@ public class Debugger
 
     private boolean blocked = false;
 
-    private Object lock = new Object();
+    private final Object lock = new Object();
 
     private boolean step = true;
 
@@ -42,7 +44,7 @@ public class Debugger
 
     public void start()
     {
-        parser.parse(grammar[0]);
+        Autumn.parseSource(grammar, source);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -53,7 +55,7 @@ public class Debugger
         frame.pe = pe;
         frame.state = state;
         stack.push(frame);
-        TextPosition pos = parser.source().position(state.start);
+        TextPosition pos = source.position(state.start);
         Platform.runLater(() ->
         {
             jsWindow.call("pushFrame", new Object[]{pe.toString(), pos.line, pos.column, state.start});
@@ -101,12 +103,7 @@ public class Debugger
 
     protected boolean doSuspend(Breakpoint bp, ParseState state)
     {
-        if (step)
-        {
-            return true;
-        }
-
-        return false;
+        return step;
     }
 
     // ---------------------------------------------------------------------------------------------

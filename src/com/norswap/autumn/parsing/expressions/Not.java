@@ -1,9 +1,10 @@
 package com.norswap.autumn.parsing.expressions;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
+import com.norswap.autumn.parsing.graph.Nullability;
 
 /**
  * Invokes its operand on the input, then resets the input to its initial position.
@@ -50,7 +51,7 @@ public final class Not extends UnaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
         return Nullability.yes(this);
     }

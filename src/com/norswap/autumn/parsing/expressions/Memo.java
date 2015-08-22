@@ -18,7 +18,7 @@ public final class Memo extends UnaryParsingExpression
             return;
         }
 
-        OutputChanges changes = parser.memoizationStrategy.get(this, state);
+        OutputChanges changes = parser.memoHandler.get(this, state);
 
         if (changes != null)
         {
@@ -27,7 +27,7 @@ public final class Memo extends UnaryParsingExpression
         }
 
         operand.parse(parser, state);
-        parser.memoizationStrategy.memoize(operand, state, new OutputChanges(state));
+        parser.memoHandler.memoize(operand, state, new OutputChanges(state));
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

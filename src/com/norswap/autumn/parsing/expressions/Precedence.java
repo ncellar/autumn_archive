@@ -50,7 +50,7 @@ public final class Precedence extends UnaryParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         if (precedence == NONE)
         {
@@ -63,8 +63,16 @@ public final class Precedence extends UnaryParsingExpression
             builder.append(", ");
         }
 
-        operand.toString(builder);
+        operand.appendTo(builder);
         builder.append(")");
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Override
+    public String ownPrintableData()
+    {
+        return String.valueOf(precedence);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

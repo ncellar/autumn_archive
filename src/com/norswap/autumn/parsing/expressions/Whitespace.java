@@ -1,13 +1,13 @@
 package com.norswap.autumn.parsing.expressions;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.ParserConfiguration;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
+import com.norswap.autumn.parsing.graph.Nullability;
 
 /**
- * Invokes {@link ParserConfiguration#whitespace} at its start position.
+ * Invokes {@link Parser#whitespace} at its start position.
  *
  * Always succeeds.
  *
@@ -31,7 +31,7 @@ public final class Whitespace extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
         builder.append("whitespace");
     }
@@ -39,7 +39,7 @@ public final class Whitespace extends ParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
         return Nullability.yes(this);
     }

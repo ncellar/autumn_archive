@@ -1,12 +1,12 @@
 package com.norswap.autumn.parsing.expressions;
 
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.expressions.common.NaryParsingExpression;
 import com.norswap.autumn.parsing.ParseState;
 import com.norswap.autumn.parsing.Parser;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.graph.FirstCalculator;
-import com.norswap.autumn.parsing.graph.nullability.Nullability;
-import com.norswap.autumn.util.Array;
+import com.norswap.autumn.parsing.graph.Nullability;
+import com.norswap.util.Array;
 
 /**
  * Invokes all its operands sequentially over the input, until one fails. Each operand is
@@ -65,7 +65,7 @@ public final class Sequence extends NaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability()
+    public Nullability nullability(Grammar grammar)
     {
         return Nullability.all(this, operands);
     }
@@ -73,7 +73,7 @@ public final class Sequence extends NaryParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public ParsingExpression[] firsts()
+    public ParsingExpression[] firsts(Grammar grammar)
     {
         ParsingExpression pe;
         int i = 0;
@@ -83,7 +83,7 @@ public final class Sequence extends NaryParsingExpression
             pe = operands[i++];
             array.add(pe);
         }
-        while (i < operands.length && FirstCalculator.nullCalc.isNullable(pe));
+        while (i < operands.length && grammar.isNullable(pe));
 
         return array.toArray(ParsingExpression[]::new);
     }

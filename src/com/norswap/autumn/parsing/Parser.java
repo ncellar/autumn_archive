@@ -1,16 +1,21 @@
 package com.norswap.autumn.parsing;
 
+import com.norswap.autumn.parsing.config.ErrorHandler;
+import com.norswap.autumn.parsing.config.MemoHandler;
+import com.norswap.autumn.parsing.config.ParserConfiguration;
 import com.norswap.autumn.parsing.expressions.ExpressionCluster;
 import com.norswap.autumn.parsing.expressions.LeftRecursive;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.util.Array;
-import com.norswap.autumn.util.HandleMap;
+import com.norswap.util.Array;
+import com.norswap.util.HandleMap;
 
 public final class Parser
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private Source source;
+    private Grammar grammar;
+
+    public final Source source;
 
     public CharSequence text;
 
@@ -33,26 +38,36 @@ public final class Parser
 
     public final ParsingExpression whitespace;
 
-    public final MemoizationStrategy memoizationStrategy;
+    public final MemoHandler memoHandler;
 
     public final boolean processLeadingWhitespace;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public Parser(Source source, ParserConfiguration config)
+    public static ParseResult parse(Grammar grammar, Source source)
     {
+        return new Parser(grammar, source, ParserConfiguration.DEFAULT).parse(grammar.root());
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static ParseResult parse(Grammar grammar, Source source, ParserConfiguration config)
+    {
+        return new Parser(grammar, source, config).parse(grammar.root());
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public Parser(Grammar grammar, Source source, ParserConfiguration config)
+    {
+        this.grammar = grammar;
         this.source = source;
         this.text = source.text();
 
         this.errorHandler = config.errorHandler.get();
-        this.whitespace = config.whitespace.get();
-        this.memoizationStrategy = config.memoizationStrategy.get();
-        this.processLeadingWhitespace = config.processLeadingWhitespace;
-    }
-
-    public Parser(Source source)
-    {
-        this(source, ParserConfiguration.DEFAULT);
+        this.memoHandler = config.memoizationStrategy.get();
+        this.whitespace = grammar.whitespace();
+        this.processLeadingWhitespace = grammar.processLeadingWhitespace();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,18 +76,20 @@ public final class Parser
      * Use the parser to match its source text to the given parsing expression.
      *
      * After calling this method, the parse tree resulting from the parse can be retrieved via
-     * {@link #tree()}.
+     * {@blink #tree()}.
      *
      * If the parse failed ({@code failed() == true}) or a partial match ({@code
-     * matchedWholeSource() == false}), errors can be reported with {@link #report()}.
+     * matchedWholeSource() == false}), errors can be reported with report().
+     *
+     * TODO change
      */
-    public void parse(ParsingExpression pe)
+    public ParseResult parse(ParsingExpression pe)
     {
         this.blocked = new Array<>();
         this.minPrecedence = new Array<>();
 
         ParseState rootState = ParseState.root();
-        rootState.tree = tree = new ParseTree();
+        rootState.tree = tree = new ParseTree(null, null, false);
 
         if (processLeadingWhitespace)
         {
@@ -90,62 +107,9 @@ public final class Parser
         {
             rootState.resetAllOutput();
         }
-    }
 
-    //----------------------------------------------------------------------------------------------
-
-    /**
-     * Report the outcome of the parse (success or failure) on System.err and in case of failure,
-     * the errors recorded during the parse. The reporting method for the errors is up to the
-     * {@link ErrorHandler}.
-     */
-    public void report()
-    {
-        if (succeeded())
-        {
-            System.err.println("The parse succeeded.");
-        }
-        else
-        {
-            System.err.println("The parse failed.");
-            errorHandler.reportErrors(this);
-        }
-
-    }
-
-    //----------------------------------------------------------------------------------------------
-
-    public Source source()
-    {
-        return source;
-    }
-
-    //----------------------------------------------------------------------------------------------
-
-    public ParseTree tree()
-    {
-        return tree;
-    }
-
-    //----------------------------------------------------------------------------------------------
-
-    public boolean succeeded()
-    {
-        return endPosition == source.length();
-    }
-
-    //----------------------------------------------------------------------------------------------
-
-    public boolean failed()
-    {
-        return endPosition != source.length();
-    }
-
-    //----------------------------------------------------------------------------------------------
-
-    public int endPosition()
-    {
-        return endPosition;
+        // TODO
+        return new ParseResult(endPosition == source.length(), endPosition >= 0, endPosition, tree, null, errorHandler.error(source));
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -2,8 +2,8 @@ package com.norswap.autumn.parsing;
 
 import com.norswap.autumn.parsing.expressions.Reference;
 import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.util.Array;
-import com.norswap.autumn.util.Caster;
+import com.norswap.util.Array;
+import com.norswap.util.Caster;
 
 import java.util.HashSet;
 

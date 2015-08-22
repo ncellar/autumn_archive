@@ -14,9 +14,9 @@ public abstract class InstrumentedExpression extends UnaryParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendTo(StringBuilder builder)
+    public void appendContentTo(StringBuilder builder)
     {
-        operand.toString(builder);
+        operand.appendTo(builder);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
