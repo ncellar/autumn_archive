@@ -1,6 +1,7 @@
 package com.norswap.util;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.function.Function;
 
 /**
@@ -50,7 +51,9 @@ public interface DeepCopy extends Cloneable
     static <T extends Cloneable> T clone(T t)
     {
         try {
-            return (T) t.getClass().getMethod("clone").invoke(t);
+            Method m = t.getClass().getMethod("clone");
+            m.setAccessible(true);
+            return (T) m.invoke(t);
         }
         catch (ReflectiveOperationException e)
         {
@@ -61,7 +64,7 @@ public interface DeepCopy extends Cloneable
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * Sometimes, it is useful to clone array one level-deep (i.e. clone the array itself than
+     * Sometimes, it is useful to clone array one level-deep (i.e. clone the array itself then
      * replace each of its elements by their clones).
      *
      * This is different from a deep copy: a deep copy will continue to recurse over the members of

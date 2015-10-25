@@ -1,12 +1,14 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.Grammar;
-import com.norswap.autumn.parsing.expressions.common.NaryParsingExpression;
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseStateSnapshot;
+import com.norswap.autumn.parsing.expressions.abstrakt.NaryParsingExpression;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
+import com.norswap.autumn.parsing.ParsingExpression;
 import com.norswap.autumn.parsing.graph.Nullability;
 import com.norswap.util.Array;
+
+import java.util.function.Predicate;
 
 /**
  * Invokes all its operands sequentially over the input, until one fails. Each operand is
@@ -23,25 +25,25 @@ public final class Sequence extends NaryParsingExpression
     @Override
     public void parse(Parser parser, ParseState state)
     {
-        ParseState down = new ParseState(state);
+        ParseStateSnapshot snapshot = state.snapshot();
 
         for (ParsingExpression operand : operands)
         {
-            operand.parse(parser, down);
+            operand.parse(parser, state);
 
-            if (down.succeeded())
+            if (state.succeeded())
             {
-                down.advance();
+                state.commit();
             }
             else
             {
-                state.resetOutput();
-                parser.fail(this, state);
+                state.restore(snapshot);
+                state.fail(this);
                 return;
             }
         }
 
-        state.merge(down);
+        state.uncommit(snapshot);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -65,7 +67,7 @@ public final class Sequence extends NaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability(Grammar grammar)
+    public Nullability nullability()
     {
         return Nullability.all(this, operands);
     }
@@ -73,7 +75,7 @@ public final class Sequence extends NaryParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public ParsingExpression[] firsts(Grammar grammar)
+    public ParsingExpression[] firsts(Predicate<ParsingExpression> nullability)
     {
         ParsingExpression pe;
         int i = 0;
@@ -83,7 +85,7 @@ public final class Sequence extends NaryParsingExpression
             pe = operands[i++];
             array.add(pe);
         }
-        while (i < operands.length && grammar.isNullable(pe));
+        while (i < operands.length && nullability.test(pe));
 
         return array.toArray(ParsingExpression[]::new);
     }

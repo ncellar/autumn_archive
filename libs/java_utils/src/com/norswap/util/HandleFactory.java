@@ -3,7 +3,7 @@ package com.norswap.util;
 /**
  * A generator of unique handles (int or long).
  *
- * A handle factory is parameterized by a (start, end, stride) triplet. The handles are allocated
+ * A handle factory is parametrized by a (start, end, stride) triplet. The handles are allocated
  * in the [start, end[ range; unless end is 0, in which case the range extends up to limit of the
  * integer type being used. In any case, the range never wraps around.
  *
@@ -12,6 +12,8 @@ package com.norswap.util;
  * hash map (as is done in {@link com.norswap.util.HandleMap}). Sequential handles are often used
  * together; using a stride produces holes in the table that avoid probing too far ahead for an
  * empty slot. It is recommended to use an odd stride (3 is a typical value).
+ *
+ * Note that this is not thread-safe.
  */
 public final class HandleFactory
 {
@@ -63,8 +65,9 @@ public final class HandleFactory
     {
         if (end > 0 && next >= end - stride || next >= Integer.MAX_VALUE - stride)
         {
-            throw new RuntimeException(
-                "Handle space (2^32 handles / stride (" + stride + ")) exhausted.");
+            throw new RuntimeException(String.format(
+                "Handle space (%s handles / stride (%d) = %d) exhausted.",
+                end == 0 ? "2^32" : (end - start), stride, size()));
         }
 
         next += stride;
@@ -77,12 +80,27 @@ public final class HandleFactory
     {
         if (end > 0 && next >= end - stride || next >= Long.MAX_VALUE - stride)
         {
-            throw new RuntimeException(
-                "Handle space (2^64 handles / stride (" + stride + ")) exhausted.");
+            throw new RuntimeException(String.format(
+                "Handle space (%s handles / stride (%d) = %d) exhausted.",
+                end == 0 ? "2^64" : (end - start), stride, size64()));
         }
 
         next += stride;
         return next;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public int size()
+    {
+        return (int) (next / stride + 1);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public long size64()
+    {
+        return next / stride + 1;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

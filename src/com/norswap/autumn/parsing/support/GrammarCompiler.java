@@ -1,15 +1,15 @@
 package com.norswap.autumn.parsing.support;
 
-import com.norswap.autumn.Autumn;
 import com.norswap.autumn.parsing.Grammar;
-import com.norswap.autumn.parsing.ParseTree;
+import com.norswap.autumn.parsing.GrammarBuilder;
+import com.norswap.autumn.parsing.tree.ParseTree;
 import com.norswap.autumn.parsing.Whitespace;
 import com.norswap.autumn.parsing.expressions.ExpressionCluster.Group;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
+import com.norswap.autumn.parsing.expressions.Filter;
+import com.norswap.autumn.parsing.ParsingExpression;
 import com.norswap.autumn.parsing.ParsingExpressionFactory;
 import com.norswap.autumn.parsing.expressions.Reference;
 import com.norswap.util.Array;
-import com.norswap.util.Counter;
 import com.norswap.util.Streams;
 
 import java.util.List;
@@ -36,18 +36,19 @@ public final class GrammarCompiler
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static Grammar compile(ParseTree tree)
+    public static GrammarBuilder compile(ParseTree tree)
     {
         Array<ParsingExpression> exprs = new GrammarCompiler().run(tree);
 
         ParsingExpression whitespace = exprs.stream()
-            .filter(rule -> "Spacing".equals(rule.name()))
+            .filter(rule -> "Spacing".equals(rule.name))
             .findFirst().orElse(Whitespace.DEFAULT());
 
         // TODO enable setting whitespace & root from grammar file
 
-        return Autumn.grammarFromExpression(
-            exprs.get(0), exprs, whitespace, true, true);
+        return Grammar.fromRoot(exprs.get(0))
+            .rules(exprs)
+            .whitespace(whitespace);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -88,7 +89,7 @@ public final class GrammarCompiler
             topChoice = token(topChoice);
         }
 
-        topChoice = compileCapture(topChoice, rule.group("captureSuffixes"));
+        topChoice = compileCapture(ruleName, topChoice, rule.group("captureSuffixes"));
 
         return named$(ruleName, topChoice);
     }
@@ -98,7 +99,7 @@ public final class GrammarCompiler
     private ParsingExpression compileOneOrGroup(
         Compiler itemCompiler, Grouper grouper, ParseTree tree)
     {
-        if (tree.childrenCount() == 1)
+        if (tree.children().size() == 1)
         {
             return itemCompiler.apply(tree.child());
         }
@@ -114,18 +115,17 @@ public final class GrammarCompiler
 
     private ParsingExpression compileCluster(ParseTree expression)
     {
-        final int UNSET = -1;
-
-        Counter currentPrecedence = new Counter(0);
         Array<ParsingExpression> namedAlternates = new Array<>();
         Array<Group> groups = new Array<>();
         Array<Array<ParsingExpression>> alts = new Array<>();
+
+        int i = 0;
+        int precedence = 1;
 
         for (ParseTree alt: expression.group("alts"))
         {
             ParsingExpression pe = compilePE(alt.get("expr").child());
 
-            int precedence = UNSET;
             int psets = 0;
             boolean leftRecursive = false;
             boolean leftAssociative = false;
@@ -142,12 +142,11 @@ public final class GrammarCompiler
                         break;
 
                     case "increment":
-                        precedence = currentPrecedence.i + 1;
+                        if (i != 0) ++precedence;
                         ++psets;
                         break;
 
                     case "same":
-                        precedence = currentPrecedence.i;
                         ++psets;
                         break;
 
@@ -161,7 +160,7 @@ public final class GrammarCompiler
                         break;
 
                     case "name":
-                        pe.setName(annotation.value);
+                        pe.name = annotation.value;
                         namedAlternates.push(pe);
                         break;
                 }
@@ -172,25 +171,12 @@ public final class GrammarCompiler
                 throw new RuntimeException(
                     "Expression specifies precedence more than once.");
             }
-
-            if (precedence == 0)
+            else if (precedence == 0)
             {
                 throw new RuntimeException(
                     "Precedence can't be 0. Don't use @0; or use @= in first position.");
             }
-
-            if (precedence == UNSET)
-            {
-                throw new RuntimeException(
-                    "Expression alternate does not specify precedence.");
-            }
-
-            if (precedence < currentPrecedence.i)
-            {
-                throw new RuntimeException(
-                    "Alternates must be grouped by precedence in expression cluster.");
-            }
-            else if (precedence == currentPrecedence.i)
+            else if (precedence < groups.size() && groups.get(precedence) != null)
             {
                 if (leftRecursive)
                 {
@@ -203,10 +189,11 @@ public final class GrammarCompiler
             }
             else
             {
-                groups.put(precedence, group(precedence, leftRecursive, leftAssociative, (Group[]) null));
+                groups.put(precedence, group(precedence, leftRecursive, leftAssociative));
                 alts.put(precedence, new Array<>(pe));
-                ++currentPrecedence.i;
             }
+
+            ++i;
         }
 
         namedAlternates.forEach(namedClusterAlternates::push);
@@ -215,7 +202,7 @@ public final class GrammarCompiler
 
         Array<Group> groupsArray = new Array<>();
 
-        for (int i = 0; i < groups.size(); ++i)
+        for (i = 0; i < groups.size(); ++i)
         {
             Group group = groups.get(i);
 
@@ -236,23 +223,19 @@ public final class GrammarCompiler
     {
         Reference ref = reference(tree.value("name"));
 
-        ParseTree allowed = tree.getOrNull("allowed");
-        ParseTree forbidden = tree.getOrNull("forbidden");
+        List<ParseTree> allowed = tree.group("allowed");
+        List<ParseTree> forbidden = tree.group("forbidden");
 
-        if (allowed != null || forbidden != null)
+        if (!allowed.isEmpty() || !forbidden.isEmpty())
         {
             return filter(
-                allowed == null
-                    ? new ParsingExpression[0]
-                    : Streams.from(allowed)
-                        .map(pe -> reference(pe.value))
-                        .toArray(ParsingExpression[]::new),
+                Streams.from(allowed)
+                    .map(pe -> reference(pe.value))
+                    .toArray(ParsingExpression[]::new),
 
-                forbidden == null
-                    ? new ParsingExpression[0]
-                    : Streams.from(forbidden)
-                        .map(pe -> reference(pe.value))
-                        .toArray(ParsingExpression[]::new),
+                Streams.from(forbidden)
+                    .map(pe -> reference(pe.value))
+                    .toArray(ParsingExpression[]::new),
 
                 ref
             );
@@ -264,9 +247,61 @@ public final class GrammarCompiler
 
     // ---------------------------------------------------------------------------------------------
 
-    private ParsingExpression compileCapture(ParsingExpression child, List<ParseTree> suffixes)
+    private String name(String name, ParsingExpression expr, ParseTree suffix)
     {
-        ParsingExpression out = child;
+        if (suffix.has("name"))
+        {
+            return suffix.value("name");
+        }
+
+        // Else there is a dollar instead of a name.
+        // Either this qualifies a rule ...
+
+        if (name != null)
+        {
+            return name;
+        }
+
+        // ... or a reference (possibly wrapped in a filter).
+
+        if (expr == null)
+        {
+            throw new RuntimeException(
+                "Dollar ($) capture name used in conjuction with a marker.");
+        }
+
+        if (expr instanceof Filter)
+        {
+            expr = ((Filter) expr).operand;
+        }
+
+        if (!(expr instanceof Reference))
+        {
+            throw new RuntimeException(
+                "Dollar ($) capture name is a suffix of something which is not an identifier");
+        }
+
+        return ((Reference)expr).target;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * The name field is for rule names, if this is a capture over a rule definition.
+     * <p>
+     * If the child field is null, this is a marker capture.
+     */
+    private ParsingExpression compileCapture
+        (String name, ParsingExpression child, List<ParseTree> suffixes)
+    {
+        boolean first = true;
+
+        // A marker implies capture!
+        ParsingExpression out = child == null
+            ? capture((first = false), null)
+            : child;
+
+        int accessors = 0;
 
         for (ParseTree suffix: suffixes)
         {
@@ -275,24 +310,37 @@ public final class GrammarCompiler
             switch (suffix.accessor)
             {
                 case "capture":
+                    if (!first)
+                    {
+                        throw new RuntimeException("Capture suffix (:) not appearing as first suffix.");
+                    }
                     out = capture(suffix.has("captureText"), out);
                     break;
 
                 case "accessor":
-                    out = accessor$(suffix.value("name"), out);
+                    out = accessor$(name(name, child, suffix), out);
+                    ++accessors;
                     break;
 
                 case "group":
-                    out = group$(suffix.value("name"), out);
+                    out = group$(name(name, child, suffix), out);
+                    ++accessors;
                     break;
 
                 case "tag":
-                    out = tag$(suffix.value("name"), out);
+                    out = tag$(name(name, child, suffix), out);
                     break;
 
                 default:
                     throw new RuntimeException("Unknown capture type: " + suffix.accessor);
             }
+
+            first = false;
+        }
+
+        if (accessors > 1)
+        {
+            throw new RuntimeException("More than one accessor or group specification.");
         }
 
         return out;
@@ -303,7 +351,7 @@ public final class GrammarCompiler
 
     private ParsingExpression[] compileChildren(ParseTree tree)
     {
-        return tree.children.stream()
+        return tree.children().stream()
             .map(this::compilePE)
             .toArray(ParsingExpression[]::new);
     }
@@ -312,6 +360,9 @@ public final class GrammarCompiler
 
     private ParsingExpression compilePE(ParseTree tree)
     {
+        ParseTree child;
+        ParsingExpression childPE;
+
         switch (tree.accessor)
         {
             case "choice":
@@ -325,6 +376,12 @@ public final class GrammarCompiler
 
             case "not":
                 return not(compilePE(tree.child()));
+
+            case "token":
+                return token(compilePE(tree.child()));
+
+            case "dumb":
+                return dumb(compilePE(tree.child()));
 
             case "until":
                 return until(
@@ -356,7 +413,9 @@ public final class GrammarCompiler
                 return oneMore(compilePE(tree.child()));
 
             case "capture":
-                return compileCapture(compilePE(tree.child(0)), tree.group("captureSuffixes"));
+                child = tree.child(0);
+                childPE = child.accessor.equals("marker") ? null : compilePE(child);
+                return compileCapture(null, childPE, tree.group("captureSuffixes"));
 
             case "drop":
                 return exprDropPrecedence(compilePE(tree.child()));

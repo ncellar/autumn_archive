@@ -3,12 +3,12 @@ package com.norswap.autumn.parsing;
 import com.norswap.autumn.parsing.expressions.*;
 import com.norswap.autumn.parsing.expressions.ExpressionCluster.Group;
 import com.norswap.autumn.parsing.expressions.Whitespace;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
 import com.norswap.util.Array;
+import com.norswap.util.annotations.NonNull;
 
 import java.util.Arrays;
 
-import static com.norswap.autumn.parsing.Registry.*; // PEF_*
+import static com.norswap.autumn.parsing.ParsingExpressionFlags.*; // PEF_*
 
 public final class ParsingExpressionFactory
 {
@@ -23,92 +23,92 @@ public final class ParsingExpressionFactory
 
     public static Capture capture(ParsingExpression operand)
     {
-        return capture(false, operand);
+        return new Capture(operand, null, Array.empty(), PEF_CAPTURE);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture captureText(ParsingExpression operand)
     {
-        return capture(true, operand);
+        return new Capture(operand, null, Array.empty(), PEF_CAPTURE | PEF_CAPTURE_TEXT);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture capture(boolean captureText, ParsingExpression operand)
     {
-        Capture result = new Capture();
-        result.operand = operand;
-        result.setFlags(PEF_CAPTURE | (captureText ? PEF_CAPTURE_TEXT : 0));
-        return result;
+        return new Capture(operand, null, Array.empty(),
+            PEF_CAPTURE | (captureText ? PEF_CAPTURE_TEXT : 0));
     }
-
-    // TODO start compat
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture capture(String accessor, ParsingExpression operand)
     {
-        Capture result = capture(false, operand);
-        result.accessor = accessor;
-        return result;
+        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static Capture marker(String accessor)
+    {
+        return new Capture(null, accessor, Array.empty(), PEF_CAPTURE);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture captureText(String accessor, ParsingExpression operand)
     {
-        Capture result = capture(true, operand);
-        result.accessor = accessor;
-        return result;
+        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE | PEF_CAPTURE_TEXT);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture captureGrouped(String accessor, ParsingExpression operand)
     {
-        Capture result = capture(accessor, operand);
-        result.setFlags(PEF_CAPTURE_GROUPED);
-        return result;
+        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE | PEF_CAPTURE_GROUPED);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture captureTextGrouped(String accessor, ParsingExpression operand)
     {
-        Capture result = captureText(accessor, operand);
-        result.setFlags(PEF_CAPTURE_GROUPED);
-        return result;
+        return new Capture(operand, accessor, Array.empty(),
+            PEF_CAPTURE | PEF_CAPTURE_TEXT | PEF_CAPTURE_GROUPED);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture capture(String accessor, Array<String> tags, ParsingExpression operand)
+    public static Capture capture(String accessor, @NonNull Array<String> tags, ParsingExpression operand)
     {
-        Capture result = capture(false, operand);
-        result.accessor = accessor;
-        result.tags = tags == null || tags.isEmpty() ? null : tags;
-        return result;
+        return new Capture(operand, accessor, tags, PEF_CAPTURE);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture captureText(String accessor, Array<String> tags, ParsingExpression operand)
     {
-        Capture result = capture(true, operand);
-        result.accessor = accessor;
-        result.tags = tags == null || tags.isEmpty() ? null : tags;
-        return result;
+        return new Capture(operand, accessor, tags, PEF_CAPTURE | PEF_CAPTURE_TEXT);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Array<String> tags(String... tags)
+    public static @NonNull Array<String> tags(String... tags)
     {
         return new Array<>(tags);
     }
 
-    // TODO end compat
+    // ---------------------------------------------------------------------------------------------
+
+    private static void checkForAccessor(Capture c, String newAccessor)
+    {
+        if (c.accessor != null)
+        {
+            throw new RuntimeException(
+                "Trying to override accessor \"" + c.accessor
+                    + "\" with accessor \"" + newAccessor + "\".");
+        }
+    }
 
     // ---------------------------------------------------------------------------------------------
 
@@ -117,16 +117,12 @@ public final class ParsingExpressionFactory
         if (operand instanceof Capture)
         {
             Capture c2 = (Capture) operand;
+            checkForAccessor(c2, accessor);
             c2.accessor = accessor;
-            // TODO what should be done in those cases?
-            //c2.clearFlags(PEF_CAPTURE_GROUPED);
             return c2;
         }
 
-        Capture result = new Capture();
-        result.operand = operand;
-        result.accessor = accessor;
-        return result;
+        return new Capture(operand, accessor, Array.empty(), 0);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -136,14 +132,17 @@ public final class ParsingExpressionFactory
         if (operand instanceof Capture)
         {
             Capture c2 = (Capture) operand;
-            c2.addTag(tag);
+
+            if (c2.tags == Array.<String>empty())
+            {
+                c2.tags = new Array<>();
+            }
+
+            c2.tags.add(tag);
             return c2;
         }
 
-        Capture result = new Capture();
-        result.operand = operand;
-        result.tags = new Array<>(tag);
-        return result;
+        return new Capture(operand, null, new Array<>(tag), 0);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -153,16 +152,13 @@ public final class ParsingExpressionFactory
         if (operand instanceof Capture)
         {
             Capture c2 = (Capture) operand;
+            checkForAccessor(c2, accessor);
             c2.accessor = accessor;
             c2.flags |= PEF_CAPTURE_GROUPED;
             return c2;
         }
 
-        Capture result = new Capture();
-        result.operand = operand;
-        result.accessor = accessor;
-        result.flags |= PEF_CAPTURE_GROUPED;
-        return result;
+        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE_GROUPED);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -196,25 +192,6 @@ public final class ParsingExpressionFactory
     public static Choice choice(ParsingExpression... operands)
     {
         Choice result = new Choice();
-        result.operands = operands;
-        return result;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    public static Cut cut(String cutName)
-    {
-        Cut result = new Cut();
-        result.name = cutName;
-        return result;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    public static Cuttable cuttable(String name, ParsingExpression... operands)
-    {
-        Cuttable result = new Cuttable();
-        result.name = name;
         result.operands = operands;
         return result;
     }
@@ -368,6 +345,7 @@ public final class ParsingExpressionFactory
     {
         LeftRecursive result = new LeftRecursive();
         result.operand = operand;
+        result.name = operand.name;
         return result;
     }
 
@@ -523,6 +501,15 @@ public final class ParsingExpressionFactory
 
     // ---------------------------------------------------------------------------------------------
 
+    public static Token token(String string)
+    {
+        Token result = new Token();
+        result.operand = literal(string);
+        return result;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
     public static Token token(ParsingExpression... seq)
     {
         return token(sequence(seq));
@@ -588,26 +575,9 @@ public final class ParsingExpressionFactory
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static ParsingExpression errorRecording$(String name, ParsingExpression pe)
-    {
-        pe.setFlags(Registry.PEF_ERROR_RECORDING);
-        return pe;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
     public static ParsingExpression named$(String name, ParsingExpression pe)
     {
-        pe.setName(name);
-        return pe;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    public static ParsingExpression recursive$(String name, ParsingExpression pe)
-    {
-        pe.setName(name);
-        new IncrementalReferenceResolver(pe).walk(pe);
+        pe.name = name;
         return pe;
     }
 

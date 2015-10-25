@@ -1,9 +1,10 @@
 package com.norswap.autumn.test.parsing;
 
 import com.norswap.autumn.Autumn;
+import com.norswap.autumn.parsing.Grammar;
 import com.norswap.autumn.parsing.ParseResult;
-import com.norswap.autumn.parsing.ParseTree;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
+import com.norswap.autumn.parsing.tree.ParseTree;
+import com.norswap.autumn.parsing.ParsingExpression;
 import com.norswap.autumn.test.TestFailed;
 
 public final class Common
@@ -12,7 +13,7 @@ public final class Common
 
     public static ParseResult parse(ParsingExpression pe, String string)
     {
-        return Autumn.parseString(Autumn.grammarFromExpression(pe), string);
+        return Autumn.parseString(Grammar.fromRoot(pe).build(), string);
     }
 
     // ---------------------------------------------------------------------------------------------

@@ -12,7 +12,7 @@ public final class Exceptions
      * the get method.
      */
     @ FunctionalInterface
-    public static interface ThrowingSupplier<T>
+    public interface ThrowingSupplier<T>
     {
         T get() throws Exception;
     }
@@ -24,7 +24,7 @@ public final class Exceptions
      * the run method.
      */
     @ FunctionalInterface
-    public static interface ThrowingRunnable
+    public interface ThrowingRunnable
     {
         void run() throws Exception;
     }
@@ -36,7 +36,7 @@ public final class Exceptions
      * apply method.
      */
     @ FunctionalInterface
-    public static interface ThrowingFunction<T, R>
+    public interface ThrowingFunction<T, R>
     {
         R apply(T t) throws Exception;
     }

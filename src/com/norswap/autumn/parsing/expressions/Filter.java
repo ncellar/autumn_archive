@@ -1,22 +1,21 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.ParsingExpression;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 import com.norswap.util.Array;
+import com.norswap.util.JArrays;
+import com.norswap.util.annotations.NonNull;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 public final class Filter extends UnaryParsingExpression
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Those must be non-null.
-
-    public ParsingExpression[] allowed;
-    public ParsingExpression[] forbidden;
+    public @NonNull ParsingExpression[] allowed;
+    public @NonNull ParsingExpression[] forbidden;
 
     // NOTE: The operand should be an ExpressionCluster (or some wrapper thereof).
 
@@ -33,7 +32,7 @@ public final class Filter extends UnaryParsingExpression
         }
 
         boolean success = allowed.length == 0;
-        ParsingExpression clusterAlternate = parser.clusterAlternate;
+        ParsingExpression clusterAlternate = state.clusterAlternate;
 
         for (ParsingExpression pe : allowed)
         {
@@ -55,43 +54,33 @@ public final class Filter extends UnaryParsingExpression
 
         if (!success)
         {
-            state.resetOutput();
-            parser.fail(this, state);
+            state.discard();
+            state.fail(this);
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void appendContentTo(StringBuilder builder)
+    public String ownDataString()
     {
-        builder.append("filter(");
-        builder.append(Array.fromArray(allowed));
-        builder.append(",");
-        builder.append(Array.fromArray(forbidden));
-        builder.append(",");
-        operand.appendTo(builder);
-        builder.append(")");
+        Array<Object> allowedIDs = new Array<>(Arrays.stream(allowed)
+            .map(x -> x.name != null ? x.name : x.hashCode())
+            .toArray());
+
+        Array<Object> forbiddenIDs = new Array<>(Arrays.stream(forbidden)
+            .map(x -> x.name != null ? x.name : x.hashCode())
+            .toArray());
+
+        return "allowed: " + allowedIDs + ", forbidden: " + forbiddenIDs;
     }
-
-    // ---------------------------------------------------------------------------------------------
-
-    @Override
-    public String ownPrintableData()
-    {
-        return "allowed: " + allowed.length + ", forbidden: " + forbidden.length;
-    }
-
 
     // ---------------------------------------------------------------------------------------------
 
     @Override
     public ParsingExpression[] children()
     {
-        return Stream.concat(
-            Stream.of(operand),
-            Stream.concat(Arrays.stream(allowed), Arrays.stream(forbidden)))
-            .toArray(ParsingExpression[]::new);
+        return JArrays.concat(new ParsingExpression[]{operand}, allowed, forbidden);
     }
 
     // ---------------------------------------------------------------------------------------------

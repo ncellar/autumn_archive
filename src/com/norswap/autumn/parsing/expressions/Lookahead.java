@@ -1,9 +1,8 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.Grammar;
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 import com.norswap.autumn.parsing.graph.Nullability;
 
 /**
@@ -24,11 +23,11 @@ public final class Lookahead extends UnaryParsingExpression
 
         if (state.succeeded())
         {
-            state.resetOutput();
+            state.discard();
         }
         else
         {
-            parser.fail(this, state);
+            state.fail(this);
         }
     }
 
@@ -45,7 +44,7 @@ public final class Lookahead extends UnaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability(Grammar grammar)
+    public Nullability nullability()
     {
         return Nullability.yes(this);
     }

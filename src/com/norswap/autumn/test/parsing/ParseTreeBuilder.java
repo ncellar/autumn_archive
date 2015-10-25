@@ -1,7 +1,9 @@
 package com.norswap.autumn.test.parsing;
 
-import com.norswap.autumn.parsing.ParseTree;
+import com.norswap.autumn.parsing.tree.ParseTree;
 import com.norswap.util.Array;
+
+import java.util.Collections;
 
 public class ParseTreeBuilder
 {
@@ -9,28 +11,21 @@ public class ParseTreeBuilder
 
     public static ParseTree $(ParseTree... children)
     {
-        ParseTree tree = new ParseTree();
-        tree.children = new Array<>(children);
-        return tree;
+        return new ParseTree(null, null, Collections.emptySet(), new Array<>(children));
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static ParseTree $(String accessor, ParseTree... children)
     {
-        ParseTree tree = new ParseTree();
-        tree.accessor = accessor;
-        tree.children = new Array<>(children);
-        return tree;
+        return new ParseTree(accessor, null, Collections.emptySet(), new Array<>(children));
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static ParseTree $(String accessor, String value, ParseTree... children)
     {
-        ParseTree tree = $(accessor, children);
-        tree.value = value;
-        return tree;
+        return new ParseTree(accessor, value, Collections.emptySet(), new Array<>(children));
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

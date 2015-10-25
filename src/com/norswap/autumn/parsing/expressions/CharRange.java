@@ -1,8 +1,8 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
+import com.norswap.autumn.parsing.ParsingExpression;
 
 /**
  * Attempts to match the next input character to a range of characters.
@@ -10,7 +10,6 @@ import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
  * Succeeds if the next input character is the range.
  *
  * On success, the end position is start position + 1.
- *
  */
 public final class CharRange extends ParsingExpression
 {
@@ -32,7 +31,7 @@ public final class CharRange extends ParsingExpression
         }
         else
         {
-            parser.fail(this, state);
+            state.fail(this);
         }
     }
 
@@ -51,21 +50,9 @@ public final class CharRange extends ParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendContentTo(StringBuilder builder)
+    public String ownDataString()
     {
-        builder.append("charRange(");
-        builder.append(start);
-        builder.append(", ");
-        builder.append(end);
-        builder.append(")");
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    @Override
-    public String ownPrintableData()
-    {
-        return toString();
+        return start + ", " + end;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

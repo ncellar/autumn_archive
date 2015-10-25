@@ -1,9 +1,10 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.OutputChanges;
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseChanges;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.state.Seed;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 
 public final class LeftRecursive extends UnaryParsingExpression
 {
@@ -16,14 +17,14 @@ public final class LeftRecursive extends UnaryParsingExpression
     @Override
     public void parse(Parser parser, ParseState state)
     {
-        OutputChanges changes = state.getSeed(this);
+        ParseChanges changes = Seed.get(state, this);
 
         if (changes != null)
         {
-            changes.mergeInto(state);
+            state.merge(changes);
             return;
         }
-        else if (leftAssociative && parser.isBlocked(this))
+        else if (leftAssociative && state.blocked.containsID(this))
         {
             // Recursion is blocked in a left-associative expression when not in left
             // position (if we were in left position, there would have been a seed).
@@ -34,20 +35,13 @@ public final class LeftRecursive extends UnaryParsingExpression
             return;
         }
 
-        changes = OutputChanges.failure();
-        state.pushSheed(this, changes);
+        changes = ParseChanges.failure();
+        Seed.push(state, this, changes);
 
         if (leftAssociative)
         {
-            parser.pushBlocked(this);
+            state.blocked.push(this);
         }
-
-        // If we're in a left-recursive position, relying on memoized values will prevent
-        // the expansion of the seed, so don't do it. This is cleared when advancing input position
-        // with {@link ParseInput#advance()}.
-
-        int oldFlags = state.flags;
-        state.forbidMemoization();
 
         // Keep parsing the operand, as long as long as the seed keeps growing.
 
@@ -58,55 +52,40 @@ public final class LeftRecursive extends UnaryParsingExpression
             if (changes.end >= state.end)
             {
                 // If no rule could grow the seed, exit the loop.
+                state.discard();
                 break;
             }
             else
             {
                 // Update the seed and retry the rule.
 
-                changes = new OutputChanges(state);
-                state.setSeed(changes);
-                state.resetAllOutput();
+                changes = state.extract();
+                Seed.set(state, changes);
+                state.discard();
             }
         }
 
-        // Reset cuts as well, as a precaution, while further thinking is done on
-        // the implications (and on the usefulness of the cut operator in general).
-        state.resetAllOutput();
-
-        state.flags = oldFlags;
-        changes.mergeInto(state);
-        state.popSeed();
+        state.merge(changes);
+        Seed.pop(state);
 
         if (state.failed())
         {
-            parser.fail(this, state);
+            state.fail(this);
         }
 
         if (leftAssociative)
         {
-            parser.popBlocked();
+            state.blocked.pop();
         }
     }
 
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendContentTo(StringBuilder builder)
-    {
-        builder.append(leftAssociative ? "leftAssociative" : "leftRecursive(");
-        operand.appendTo(builder);
-        builder.append(")");
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    @Override
-    public String ownPrintableData()
+    public String ownDataString()
     {
         return leftAssociative ? "left-associative" : "";
     }
-
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 }

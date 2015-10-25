@@ -87,7 +87,7 @@ help:
 
 build:
 	mkdir -p $(OUTDIR)
-	cp -R resources/* $(OUTDIR)
+	cp -R resources/* $(OUTDIR) 2>/dev/null || :
 	javac -Xlint:unchecked $(DEBUG) -d $(OUTDIR) -cp "deps/*" `find src $(LIBS) -name *.java`
 
 clean:

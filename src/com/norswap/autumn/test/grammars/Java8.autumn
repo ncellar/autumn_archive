@@ -8,11 +8,8 @@ Root = CompilationUnit "\u001a"? !_;
 // the escape is "Ctrl + Z" (JLS 3.5)
 
 //=========================================================================
-//  JLS 3  Lexical Structure
+//  Lexical Structure (JLS 3)
 //=========================================================================
-//-------------------------------------------------------------------------
-//  JLS 3.1-3  Unicode
-//-------------------------------------------------------------------------
 //  The Unicode escapes in Java source are converted
 //  to Java characters by a preprocessor prior to parsing.
 //  This is not emulated here; the Unicode escapes are only allowed
@@ -22,21 +19,13 @@ Root = CompilationUnit "\u001a"? !_;
 //  literals does not apply here.
 //-------------------------------------------------------------------------
 
-//-------------------------------------------------------------------------
-//  JLS 3.6-7  Spacing
-//-------------------------------------------------------------------------
-
 Spacing
     = ( [ \t\r\n\f]+       // WhiteSpace
       / "/*" _ *+ "*/"     // TraditionalComment
       / "//" _ *+ [\r\n]   // EndOfLineComment
       )* ;
 
-//-------------------------------------------------------------------------
-//  JLS 3.8  Identifiers
-//-------------------------------------------------------------------------
-
-Identifier !%= !Keyword Letter LetterOrDigit* ;
+Identifier ^%= !Keyword Letter LetterOrDigit* ;
 
 QualIdent = Identifier ,+ '.';
 
@@ -49,122 +38,72 @@ LetterOrDigit = [a-z] / [A-Z] / [0-9] / [_$] ;
 // as such by special Java procedures, which is difficult
 // to express in terms of Parsing Expressions.
 
-//-------------------------------------------------------------------------
-//  JLS 3.9  Keywords
-//  More precisely: reserved words. According to JLS, "true", "false",
-//  and "null" are technically not keywords - but still must not appear
-//  as identifiers. Keywords "const" and "goto" are not used; JLS explains
-//  the reason.
-//-------------------------------------------------------------------------
-
 Keyword
-    = ( "abstract"
-      / "assert"
-      / "boolean"
-      / "break"
-      / "byte"
-      / "case"
-      / "catch"
-      / "char"
-      / "class"
-      / "const"
-      / "continue"
-      / "default"
-      / "double"
-      / "do"
-      / "else"
-      / "enum"
-      / "extends"
-      / "false"
-      / "finally"
-      / "final"
-      / "float"
-      / "for"
-      / "goto"
-      / "if"
-      / "implements"
-      / "import"
-      / "interface"
-      / "int"
-      / "instanceof"
-      / "long"
-      / "native"
-      / "new"
-      / "null"
-      / "package"
-      / "private"
-      / "protected"
-      / "public"
-      / "return"
-      / "short"
-      / "static"
-      / "strictfp"
-      / "super"
-      / "switch"
-      / "synchronized"
-      / "this"
-      / "throws"
-      / "throw"
-      / "transient"
-      / "true"
-      / "try"
-      / "void"
-      / "volatile"
-      / "while"
-      ) !LetterOrDigit
-    ;
+    = ( "abstract"      / "assert"      / "boolean"     / "break"           / "byte"
+      / "case"          / "catch"       / "char"        / "class"           / "const"
+      / "continue"      / "default"     / "double"      / "do"              / "else"
+      / "enum"          / "extends"     / "false"       / "finally"         / "final"
+      / "float"         / "for"         / "goto"        / "if"              / "implements"
+      / "import"        / "interface"   / "int"         / "instanceof"      / "long"
+      / "native"        / "new"         / "null"        / "package"         / "private"
+      / "protected"     / "public"      / "return"      / "short"           / "static"
+      / "strictfp"      / "super"       / "switch"      / "synchronized"    / "this"
+      / "throws"        / "throw"       / "transient"   / "true"            / "try"
+      / "void"          / "volatile"    / "while"
 
-ABSTRACT     !%= "abstract"     !LetterOrDigit  ;
-ASSERT       !%= "assert"       !LetterOrDigit  ;
-BOOLEAN      !%= "boolean"      !LetterOrDigit  ;
-BREAK        !%= "break"        !LetterOrDigit  ;
-BYTE         !%= "byte"         !LetterOrDigit  ;
-CASE         !%= "case"         !LetterOrDigit  ;
-CATCH        !%= "catch"        !LetterOrDigit  ;
-CHAR         !%= "char"         !LetterOrDigit  ;
-CLASS        !%= "class"        !LetterOrDigit  ;
-CONTINUE     !%= "continue"     !LetterOrDigit  ;
-DEFAULT      !%= "default"      !LetterOrDigit  ;
-DOUBLE       !%= "double"       !LetterOrDigit  ;
-DO           !%= "do"           !LetterOrDigit  ;
-ELSE         !%= "else"         !LetterOrDigit  ;
-ENUM         !%= "enum"         !LetterOrDigit  ;
-EXTENDS      !%= "extends"      !LetterOrDigit  ;
-FALSE        !%= "false"        !LetterOrDigit  ;
-FINALLY      !%= "finally"      !LetterOrDigit  ;
-FINAL        !%= "final"        !LetterOrDigit  ;
-FLOAT        !%= "float"        !LetterOrDigit  ;
-FOR          !%= "for"          !LetterOrDigit  ;
-IF           !%= "if"           !LetterOrDigit  ;
-IMPLEMENTS   !%= "implements"   !LetterOrDigit  ;
-IMPORT       !%= "import"       !LetterOrDigit  ;
-INTERFACE    !%= "interface"    !LetterOrDigit  ;
-INT          !%= "int"          !LetterOrDigit  ;
-INSTANCEOF   !%= "instanceof"   !LetterOrDigit  ;
-LONG         !%= "long"         !LetterOrDigit  ;
-NATIVE       !%= "native"       !LetterOrDigit  ;
-NEW          !%= "new"          !LetterOrDigit  ;
-NULL         !%= "null"         !LetterOrDigit  ;
-PACKAGE      !%= "package"      !LetterOrDigit  ;
-PRIVATE      !%= "private"      !LetterOrDigit  ;
-PROTECTED    !%= "protected"    !LetterOrDigit  ;
-PUBLIC       !%= "public"       !LetterOrDigit  ;
-RETURN       !%= "return"       !LetterOrDigit  ;
-SHORT        !%= "short"        !LetterOrDigit  ;
-STATIC       !%= "static"       !LetterOrDigit  ;
-STRICTFP     !%= "strictfp"     !LetterOrDigit  ;
-SUPER        !%= "super"        !LetterOrDigit  ;
-SWITCH       !%= "switch"       !LetterOrDigit  ;
-SYNCHRONIZED !%= "synchronized" !LetterOrDigit  ;
-THIS         !%= "this"         !LetterOrDigit  ;
-THROWS       !%= "throws"       !LetterOrDigit  ;
-THROW        !%= "throw"        !LetterOrDigit  ;
-TRANSIENT    !%= "transient"    !LetterOrDigit  ;
-TRUE         !%= "true"         !LetterOrDigit  ;
-TRY          !%= "try"          !LetterOrDigit  ;
-VOID         !%= "void"         !LetterOrDigit  ;
-VOLATILE     !%= "volatile"     !LetterOrDigit  ;
-WHILE        !%= "while"        !LetterOrDigit  ;
+      ) !LetterOrDigit ;
+
+ABSTRACT     ^%= "abstract"     !LetterOrDigit  ;
+ASSERT       ^%= "assert"       !LetterOrDigit  ;
+BOOLEAN      ^%= "boolean"      !LetterOrDigit  ;
+BREAK        ^%= "break"        !LetterOrDigit  ;
+BYTE         ^%= "byte"         !LetterOrDigit  ;
+CASE         ^%= "case"         !LetterOrDigit  ;
+CATCH        ^%= "catch"        !LetterOrDigit  ;
+CHAR         ^%= "char"         !LetterOrDigit  ;
+CLASS        ^%= "class"        !LetterOrDigit  ;
+CONTINUE     ^%= "continue"     !LetterOrDigit  ;
+DEFAULT      ^%= "default"      !LetterOrDigit  ;
+DOUBLE       ^%= "double"       !LetterOrDigit  ;
+DO           ^%= "do"           !LetterOrDigit  ;
+ELSE         ^%= "else"         !LetterOrDigit  ;
+ENUM         ^%= "enum"         !LetterOrDigit  ;
+EXTENDS      ^%= "extends"      !LetterOrDigit  ;
+FALSE        ^%= "false"        !LetterOrDigit  ;
+FINALLY      ^%= "finally"      !LetterOrDigit  ;
+FINAL        ^%= "final"        !LetterOrDigit  ;
+FLOAT        ^%= "float"        !LetterOrDigit  ;
+FOR          ^%= "for"          !LetterOrDigit  ;
+IF           ^%= "if"           !LetterOrDigit  ;
+IMPLEMENTS   ^%= "implements"   !LetterOrDigit  ;
+IMPORT       ^%= "import"       !LetterOrDigit  ;
+INTERFACE    ^%= "interface"    !LetterOrDigit  ;
+INT          ^%= "int"          !LetterOrDigit  ;
+INSTANCEOF   ^%= "instanceof"   !LetterOrDigit  ;
+LONG         ^%= "long"         !LetterOrDigit  ;
+NATIVE       ^%= "native"       !LetterOrDigit  ;
+NEW          ^%= "new"          !LetterOrDigit  ;
+NULL         ^%= "null"         !LetterOrDigit  ;
+PACKAGE      ^%= "package"      !LetterOrDigit  ;
+PRIVATE      ^%= "private"      !LetterOrDigit  ;
+PROTECTED    ^%= "protected"    !LetterOrDigit  ;
+PUBLIC       ^%= "public"       !LetterOrDigit  ;
+RETURN       ^%= "return"       !LetterOrDigit  ;
+SHORT        ^%= "short"        !LetterOrDigit  ;
+STATIC       ^%= "static"       !LetterOrDigit  ;
+STRICTFP     ^%= "strictfp"     !LetterOrDigit  ;
+SUPER        ^%= "super"        !LetterOrDigit  ;
+SWITCH       ^%= "switch"       !LetterOrDigit  ;
+SYNCHRONIZED ^%= "synchronized" !LetterOrDigit  ;
+THIS         ^%= "this"         !LetterOrDigit  ;
+THROWS       ^%= "throws"       !LetterOrDigit  ;
+THROW        ^%= "throw"        !LetterOrDigit  ;
+TRANSIENT    ^%= "transient"    !LetterOrDigit  ;
+TRUE         ^%= "true"         !LetterOrDigit  ;
+TRY          ^%= "try"          !LetterOrDigit  ;
+VOID         ^%= "void"         !LetterOrDigit  ;
+VOLATILE     ^%= "volatile"     !LetterOrDigit  ;
+WHILE        ^%= "while"        !LetterOrDigit  ;
 
 //=========================================================================
 //  Literals (JLS 3.10)
@@ -183,16 +122,16 @@ WHILE        !%= "while"        !LetterOrDigit  ;
 
 */
 
-Literal ~literal
+Literal ~ literal
     = FloatLiteral      :+~floatLiteral
     / IntegerLiteral    :+~integerLiteral    // May be a prefix of FloatLiteral
     / BooleanLiteral    :+~booleanLiteral
     / CharLiteral       :+~charLiteral
     / StringLiteral     :+~stringLiteral
-    / NullLiteral       :+~nullLiteral ;
+    / NullLiteral       :~nullLiteral ;
 
 IntegerLiteral
-    !%= ( HexNumeral
+    ^%= ( HexNumeral
       / BinaryNumeral
       / OctalNumeral            // May be a prefix of HexNumeral or BinaryNumeral
       / DecimalNumeral          // May be a prefix of OctalNumeral
@@ -211,7 +150,7 @@ BinaryNumeral
     = ("0b" / "0B") [01]([_]*[01])* ;
 
 FloatLiteral
-    !%= HexadecimalFloatingPointLiteral
+    ^%= HexadecimalFloatingPointLiteral
       / DecimalFloatingPointLiteral ;   // May be a prefix of above
 
 DecimalFloatingPointLiteral
@@ -246,10 +185,10 @@ BooleanLiteral
     = TRUE / FALSE ;
 
 CharLiteral
-    !%= "'" (Escape / !['\\\n\r] _) "'" ;
+    ^%= "'" (Escape / !['\\\n\r] _) "'" ;
 
 StringLiteral
-    !%= "\"" (Escape / ![\"\\\n\r] _)* "\"" ;
+    ^%= "\"" (Escape / ![\"\\\n\r] _)* "\"" ;
 
 Escape
     = "\\" ([btnfr\"'\\] / OctalEscape / UnicodeEscape) ;
@@ -341,29 +280,29 @@ constraints:
     - type arguments and bounds must be reference types (classes or arrays, not primitive types)
 
 <basicType>
-    :+~basicType
+    :+~BasicType
 
 <primitiveType>
-    :~primitiveType
+    :~PrimitiveType
         <annotations>
         <basicType>
 
 <classType>
-    :~classType
+    :~ClassType
         :#components
             <annotations>
             :+-id
             <typeArgs>
 
 <type>
-    :~type
+    :~Type
         OR
             <primitiveType>
             <classType>
         <dims>
 
 <stemType>
-    ~stemType
+    ~StemType
         OR
             <primitiveType>
             <classType>
@@ -379,7 +318,6 @@ constraints:
         #boundTypes
             <classType>
 
-
 <typeArgs>
     # typeArgs
         OR
@@ -387,7 +325,7 @@ constraints:
             <type>
 
 <wildcard>
-    :~ wildcard
+    :~ Wildcard
         <annotations>
         OR?
             -extends
@@ -397,7 +335,7 @@ constraints:
 
 */
 
-BasicType :+~ basicType
+BasicType :+~$
     = BYTE
     / SHORT
     / INT
@@ -407,26 +345,26 @@ BasicType :+~ basicType
     / DOUBLE
     / BOOLEAN ;
 
-PrimitiveType :~ primitiveType
+PrimitiveType :~$
     = Annotations BasicType ;
 
-ClassType :~ classType
+ClassType :~$
     = (Annotations Identifier:+-id TypeArguments?) :# components ,+ '.' ;
 
-Type :~ type
+Type :~$
     = StemType Dims ;
 
-StemType ~ stemType
+StemType ~$
     = PrimitiveType / ClassType ;
 
 Dim
     = Annotations '[' ']' ;
 
 Dims
-    = Dim :# dims * ;
+    = Dim* :# dims ;
 
 DimsAlo
-    = Dim :# dims + ;
+    = Dim+ :# dims ;
 
 TypeParameters
     = LPOINT TypeParameter :# typeParameters ,+ ',' RPOINT ;
@@ -435,7 +373,7 @@ TypeParameter
     = Annotations Identifier:+-id TypeBound? ;
 
 TypeBound
-    = EXTENDS (ClassType # boundTypes) ,+ AND ;
+    = EXTENDS ClassType # boundTypes ,+ AND ;
 
 TypeArguments
     = LPOINT TypeArgument # typeArgs ,+ ',' RPOINT ;
@@ -443,7 +381,7 @@ TypeArguments
 TypeArgument
     = Type / Wildcard ;
 
-Wildcard :~ wildcard
+Wildcard :~$
     = Annotations QUERY WildcardBounds? ;
 
 WildcardBounds
@@ -457,7 +395,7 @@ WildcardBounds
 /*
 
 <root>
-    :- package
+    :- PackageDeclaration
         <annotations>
         :+-id
     :#imports
@@ -470,15 +408,15 @@ WildcardBounds
 */
 
 CompilationUnit
-    = PackageDeclaration?
+    = (PackageDeclaration :-$)?
       ((ImportDeclaration :# imports) / ';')*
-      (TypeDeclaration :# types)* ;
+      ((TypeDeclaration :# types) / ';')* ;
 
-PackageDeclaration :- package
+PackageDeclaration
     = Annotations PACKAGE QualIdent:+-id ';' ;
 
 ImportDeclaration
-    = IMPORT STATIC:-static? QualIdent:+-id ('.' STAR:-star)? ';' ;
+    = IMPORT (STATIC :- static)? QualIdent:+-id ('.' STAR:-star)? ';' ;
 
 //=========================================================================
 //  Type Declarations (JLS 8.1 & 8.9 & 9.6)
@@ -500,16 +438,16 @@ constraints:
     #modifiers
         OR
             <annotation>
-            :~public
-            :~protected
-            :~private
-            :~abstract
-            :~static
-            :~final
-            :~strictfp
+            :~PUBLIC
+            :~PROTECTED
+            :~PRIVATE
+            :~ABSTRACT
+            :~STATIC
+            :~FINAL
+            :~STRICTFP
 
 <typeDeclaration>
-    :~typeDeclaration
+    :~TypeDeclaration
         <typeModifiers>
         ?:-annotationDeclaration
         OR
@@ -546,26 +484,26 @@ constraints:
 
 TypeModifier
     = Annotation
-    / PUBLIC        :~public
-    / PROTECTED     :~protected
-    / PRIVATE       :~private
-    / ABSTRACT      :~abstract
-    / STATIC        :~static
-    / FINAL         :~final
-    / STRICTFP      :~strictfp ;
+    / PUBLIC        :~$
+    / PROTECTED     :~$
+    / PRIVATE       :~$
+    / ABSTRACT      :~$
+    / STATIC        :~$
+    / FINAL         :~$
+    / STRICTFP      :~$ ;
 
-TypeDeclaration :~ typeDeclaration
-    = TypeModifier # modifiers *  (EnumDeclaration / OtherTypeDeclaration) ;
+TypeDeclaration :~$
+    = TypeModifier* # modifiers  (EnumDeclaration / OtherTypeDeclaration) ;
 
 EnumDeclaration
     = ENUM:-enum
       Identifier:+-id
       Extends?
       Implements?
-      '{' (EnumConstant :# enumConstants) , ',' ','? (';' ClassBodyDeclarations)? '}' ;
+      '{' EnumConstant :# enumConstants , ',' ','? (';' ClassBodyDeclarations)? '}' ;
 
 OtherTypeDeclaration
-    = (CLASS:-class / '@':-annotationDeclaration? INTERFACE:-interface)
+    = (CLASS:-class / ('@' :- annotationDeclaration)? INTERFACE:-interface)
       Identifier:+-id
       TypeParameters?
       Extends?
@@ -573,10 +511,10 @@ OtherTypeDeclaration
       ClassBody ;
 
 Extends # extended
-    = EXTENDS (ClassType ,+ ',') ;
+    = EXTENDS ClassType ,+ ',' ;
 
 Implements # implemented
-    = IMPLEMENTS (ClassType ,+ ',') ;
+    = IMPLEMENTS ClassType ,+ ',' ;
 
 ClassBody
     = '{' ClassBodyDeclarations '}' ;
@@ -748,7 +686,7 @@ FieldModifier
     / VOLATILE  :~volatile ;
 
 FieldDeclaration :~ fieldDeclaration
-    = FieldModifier # modifiers * Type VariableDeclaratorList ';' ;
+    = FieldModifier* # modifiers Type VariableDeclaratorList ';' ;
 
 VariableDeclaratorList :# declarators
     = VariableDeclarator ,+ ',' ;
@@ -763,7 +701,7 @@ VariableInitializer :~ variableInitializer
     = Expression / ArrayInitializer ;
 
 ArrayInitializer
-    = '{' (VariableInitializer # initializerElements) , ',' ','? '}' ;
+    = '{' VariableInitializer # initializerElements , ',' ','? '}' ;
 
 //-------------------------------------------------------------------------
 //  Methods
@@ -793,7 +731,7 @@ MethodDeclaration :~ methodDeclaration
       (Block / ';') ;
 
 FormalParameters
-    = '(' (FormalParameter :# parameters) , ',' ')' ;
+    = '(' FormalParameter :# parameters , ',' ')' ;
 
 FormalParameter
     = VariableModifiers Type
@@ -818,7 +756,7 @@ ConstructorModifier
     / PRIVATE       :~private ;
 
 ConstructorDeclaration :~ constructorDeclaration
-    = ConstructorModifier # modifiers *
+    = ConstructorModifier* # modifiers
       TypeParameters?
       Identifier:+-id
       FormalParameters
@@ -830,7 +768,7 @@ ExplicitConstructorInvocation :- constrInvoc
     / TypeArguments? SUPER:-super Arguments ';'
 
     // http://stackoverflow.com/questions/2831484
-    // TODO: only primary expression allowed here?
+    // TODO: only primary expression allowed here (needs precedence filter?)
 
     / Expression - enclosingInstance '.' TypeArguments? SUPER:-super Arguments ';' ;
 
@@ -876,7 +814,7 @@ Annotations # annotations
     = Annotation* ;
 
 Annotation :~ annotation
-    = '@' QualIdent:+-id ('('( (ElementValuePair :# pairs) ,+ ',' / ElementValue )? ')')? ;
+    = '@' QualIdent:+-id ('('( ElementValuePair :# pairs ,+ ',' / ElementValue )? ')')? ;
 
 ElementValuePair
     = Identifier:+-id EQU ElementValue ;
@@ -1052,8 +990,8 @@ Statement ~ statement
     / (SYNCHRONIZED ParExpression Block)                    :~synchronized
     / (RETURN Expression? ';')                              :~return
     / (THROW Expression ';')                                ~throw
-    / (BREAK Identifier:+-id? ';')                          :~break
-    / (CONTINUE Identifier:+-id? ';')                       :~continue
+    / (BREAK (Identifier :+- id)? ';')                      :~break
+    / (CONTINUE (Identifier :+- id)? ';')                   :~continue
     / (ASSERT Expression (COLON Expression-message)? ';')   :~assert
     / ';'                                                   :~semi
     / (StatementExpression ';')                             ~stmtExpression
@@ -1066,7 +1004,7 @@ ParExpression
     = '(' Expression ')' ;
 
 SwitchBlock
-    = '{' (SwitchLabel # labels + BlockStatements) :# switchBlocks * '}' ;
+    = '{' (SwitchLabel+ # labels BlockStatements)* :# switchBlocks '}' ;
 
 SwitchLabel
     = CASE Expression~label COLON / DEFAULT:~default COLON ;
@@ -1075,7 +1013,7 @@ StatementExpression
     = Expression allow { assign, binc, bdec, ainc, adec, mcall, tmcall, ccall } ;
 
 BasicForStatement :~ basicFor
-    = FOR '(' ForInit:-init? ';' Expression-cond? ';' StatementExpressionList:-iter? ')'
+    = FOR '(' (ForInit :- init)? ';' (Expression - cond)? ';' (StatementExpressionList :- iter)? ')'
             Statement-body ;
 
 ForInit
@@ -1092,13 +1030,13 @@ EnhancedForStatement :~ enhancedFor
 TryStatement :~ try
     = TRY
       ( Block - body (CatchClause* Finally / CatchClause+)
-      / '(' (Resource :# resources) ,+ ';' ';'? ')' Block CatchClause* Finally? ) ;
+      / '(' Resource :# resources ,+ ';' ';'? ')' Block CatchClause* Finally? ) ;
 
 CatchClause :# catchClauses
     = CATCH '(' CatchFormalParameter ')' Block ;
 
 CatchFormalParameter
-    = VariableModifiers (ClassType # types) ,+ OR VariableDeclaratorId ;
+    = VariableModifiers ClassType # types ,+ OR VariableDeclaratorId ;
 
 Finally
     = FINALLY Block - finally ;
@@ -1205,7 +1143,7 @@ LambdaExpression :~ lambda
 LambdaParameters
     = Identifier:+-id
     / FormalParameters
-    / '(' (Identifier :+# inferredParameters) ,+ ',' ')' ;
+    / '(' Identifier :+# inferredParameters ,+ ',' ')' ;
 
 // ===============================================================================
 
@@ -1348,7 +1286,7 @@ ConditionalExpression :~ conditionalExpr
 //       further allowed only w/ reference type and must be class types
 
 CastExpression :~ cast
-    = '(' (Type # types) ,+ AND ')' Expression-op;
+    = '(' Type # types ,+ AND ')' Expression-op;
 
 
 /*

@@ -1,15 +1,15 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 
 /**
  * Parses its operand in dumb mode, like a non-memoizing PEG parser. In this
  * mode, most features cannot be used, including:
  *
  * - error reporting
- * - memoization & cutting
+ * - memoization
  * - left-recursion
  * - associativity
  * - precedence
@@ -46,7 +46,7 @@ public final class Dumb extends UnaryParsingExpression
         }
         else
         {
-            parser.fail(this, state);
+            state.fail(this);
         }
     }
 

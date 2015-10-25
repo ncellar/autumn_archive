@@ -32,7 +32,7 @@ public class MultiMap<K, V> extends HashMap<K, Set<V>>
 
     public Set<V> add(K key, V value)
     {
-        Set<V> set = computeIfAbsent(key, k -> new HashSet<V>());
+        Set<V> set = computeIfAbsent(key, k -> new HashSet<>());
         set.add(value);
         return set;
     }
@@ -41,12 +41,8 @@ public class MultiMap<K, V> extends HashMap<K, Set<V>>
 
     public Set<V> addAll(K key, V[] values)
     {
-        Set<V> set = computeIfAbsent(key, k -> new HashSet<V>());
-
-        for (V v: values) {
-            set.add(v);
-        }
-
+        Set<V> set = computeIfAbsent(key, k -> new HashSet<>());
+        Collections.addAll(set, values);
         return set;
     }
 
@@ -54,7 +50,7 @@ public class MultiMap<K, V> extends HashMap<K, Set<V>>
 
     public Set<V> addAll(K key, Iterable<V> values)
     {
-        Set<V> set = computeIfAbsent(key, k -> new HashSet<V>());
+        Set<V> set = computeIfAbsent(key, k -> new HashSet<>());
 
         for (V v: values) {
             set.add(v);

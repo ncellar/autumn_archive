@@ -1,9 +1,8 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.Grammar;
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 import com.norswap.autumn.parsing.graph.Nullability;
 
 /**
@@ -20,22 +19,20 @@ public final class Not extends UnaryParsingExpression
     @Override
     public void parse(Parser parser, ParseState state)
     {
-        int oldFlags = state.flags;
-
-        state.forbidErrorRecording();
+        state.recordErrors = false;
 
         operand.parse(parser, state);
 
         if (state.succeeded())
         {
-            parser.fail(this, state);
+            state.fail(this);
         }
         else
         {
-            state.resetOutput();
+            state.discard();
         }
 
-        state.flags = oldFlags;
+        state.recordErrors = true;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -51,7 +48,7 @@ public final class Not extends UnaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability(Grammar grammar)
+    public Nullability nullability()
     {
         return Nullability.yes(this);
     }

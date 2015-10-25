@@ -1,12 +1,13 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.Grammar;
-import com.norswap.autumn.parsing.expressions.common.NaryParsingExpression;
-import com.norswap.autumn.parsing.OutputChanges;
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.expressions.abstrakt.NaryParsingExpression;
+import com.norswap.autumn.parsing.state.ParseChanges;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
+import com.norswap.autumn.parsing.ParsingExpression;
 import com.norswap.autumn.parsing.graph.Nullability;
+
+import java.util.function.Predicate;
 
 /**
  * Invokes all its operands at its initial input position.
@@ -23,7 +24,7 @@ public final class LongestMatch extends NaryParsingExpression
     @Override
     public void parse(Parser parser, ParseState state)
     {
-        OutputChanges farthestChanges = OutputChanges.failure();
+        ParseChanges farthestChanges = ParseChanges.failure();
 
         for (ParsingExpression operand : operands)
         {
@@ -31,17 +32,17 @@ public final class LongestMatch extends NaryParsingExpression
 
             if (state.end > farthestChanges.end)
             {
-                farthestChanges = new OutputChanges(state);
+                farthestChanges = state.extract();
             }
 
-            state.resetAllOutput();
+            state.discard();
         }
 
-        farthestChanges.mergeInto(state);
+        state.merge(farthestChanges);
 
         if (state.failed())
         {
-            parser.fail(this, state);
+            state.fail(this);
         }
     }
 
@@ -68,7 +69,7 @@ public final class LongestMatch extends NaryParsingExpression
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public Nullability nullability(Grammar grammar)
+    public Nullability nullability()
     {
         return Nullability.any(this, operands);
     }
@@ -76,7 +77,7 @@ public final class LongestMatch extends NaryParsingExpression
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public ParsingExpression[] firsts(Grammar grammar)
+    public ParsingExpression[] firsts(Predicate<ParsingExpression> nullability)
     {
         return operands;
     }

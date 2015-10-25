@@ -1,8 +1,9 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.expressions.ExpressionCluster.PrecedenceEntry;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 
 public final class WithMinPrecedence extends UnaryParsingExpression
 {
@@ -15,16 +16,17 @@ public final class WithMinPrecedence extends UnaryParsingExpression
     @Override
     public void parse(Parser parser, ParseState state)
     {
-        int oldMinPrecedence = parser.minPrecedence();
-        parser.setMinPrecedence(this.minPrecedence);
+        PrecedenceEntry entry = state.minPrecedence.peek();
+        int oldMinPrecedence = entry.minPrecedence;
+        entry.minPrecedence = this.minPrecedence;
         operand.parse(parser, state);
-        parser.setMinPrecedence(oldMinPrecedence);
+        entry.minPrecedence = oldMinPrecedence;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public String ownPrintableData()
+    public String ownDataString()
     {
         return "minPrecedence: " + minPrecedence;
     }

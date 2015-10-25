@@ -1,6 +1,6 @@
 package com.norswap.autumn.parsing;
 
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
+import com.norswap.autumn.parsing.graph.ReferenceResolver;
 
 import static com.norswap.autumn.parsing.ParsingExpressionFactory.*;
 
@@ -8,8 +8,9 @@ import static com.norswap.autumn.parsing.ParsingExpressionFactory.*;
  * This class exposes a few handy whitespace parsing expression; foremost amongst which is the
  * default whitespace expression ({@link #DEFAULT()}).
  * <p>
- * The parsing expression returned by the methods of this class are unique (i.e. they can be
- * freely modified) but they contain unresolved references!
+ * The parsing expression returned by the methods of this class are unique (i.e. they can be freely
+ * modified), and do not need to be further processed: references are resolved, no left-recursion
+ * is present.
  */
 public final class Whitespace
 {
@@ -98,7 +99,10 @@ public final class Whitespace
      */
     public static ParsingExpression blockComment()
     {
-        return blockComment.deepCopy();
+        ParsingExpression out = blockComment.deepCopy();
+        out = new ReferenceResolver().visit(out);
+
+        return out;
     }
 
     // ---------------------------------------------------------------------------------------------

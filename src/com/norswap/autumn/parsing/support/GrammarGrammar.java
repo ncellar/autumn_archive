@@ -2,7 +2,7 @@ package com.norswap.autumn.parsing.support;
 
 import com.norswap.autumn.Autumn;
 import com.norswap.autumn.parsing.Grammar;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
+import com.norswap.autumn.parsing.ParsingExpression;
 
 import static com.norswap.autumn.parsing.ParsingExpressionFactory.*;
 
@@ -14,168 +14,243 @@ public final class GrammarGrammar
 
     public static ParsingExpression
 
-    and         = token(literal("&")),
-    bang        = token(literal("!")),
-    equal       = token(literal("=")),
-    plus        = token(literal("+")),
-    qMark       = token(literal("?")),
-    colon       = token(literal(":")),
-    semi        = token(literal(";")),
-    slash       = token(literal("/")),
-    star        = token(literal("*")),
-    tilda       = token(literal("~")),
-    lBrace      = token(literal("{")),
-    rBrace      = token(literal("}")),
-    lParen      = token(literal("(")),
-    rParen      = token(literal(")")),
-    underscore  = token(literal("_")),
-    starPlus    = token(literal("*+")),
-    plusPlus    = token(literal("++")),
-    arrow       = token(literal("->")),
-    lAnBra      = token(literal("<")),
-    rAnBra      = token(literal(">")),
-    comma       = token(literal(",")),
-    commaPlus   = token(literal(",+")),
-    minus       = token(literal("-")),
-    hash        = token(literal("#")),
+    // TOKENS
 
-    digit         = charRange('0', '9'),
-    hexDigit      = choice(digit, charRange('a', 'f'), charRange('A', 'F')),
-    letter        = choice(charRange('a', 'z'), charRange('A', 'Z')),
-    nameChar      = choice(letter, digit, literal("_")),
+    and         = token("&"),
+    bang        = token("!"),
+    equal       = token("="),
+    plus        = token("+"),
+    qMark       = token("?"),
+    colon       = token(":"),
+    semi        = token(";"),
+    slash       = token("/"),
+    star        = token("*"),
+    tilda       = token("~"),
+    lBrace      = token("{"),
+    rBrace      = token("}"),
+    lParen      = token("("),
+    rParen      = token(")"),
+    underscore  = token("_"),
+    starPlus    = token("*+"),
+    plusPlus    = token("++"),
+    arrow       = token("->"),
+    lAnBra      = token("<"),
+    rAnBra      = token(">"),
+    comma       = token(","),
+    commaPlus   = token(",+"),
+    minus       = token("-"),
+    hash        = token("#"),
+    dollar      = token("$"),
+    dot         = token("."),
+    percent     = token("%"),
+    hat         = token("^"),
 
-    num           = token(oneMore(digit)),
+    // NAMES AND LITERALS
 
-    exprLit       = token(literal("expr"), not(nameChar)),
-    dropLit       = token(literal("drop"), not(nameChar)),
-    left_assoc    = token(literal("left_assoc"), not(nameChar)),
-    left_recur    = token(literal("left_recur"), not(nameChar)),
+    digit       = charRange('0', '9'),
 
-    reserved      = choice(exprLit, dropLit, left_assoc, left_recur),
+    hexDigit    = choice(
+                    digit,
+                    charRange('a', 'f'),
+                    charRange('A', 'F')),
 
-    escape = named$("escape", choice(
-        sequence(literal("\\u"), hexDigit, hexDigit, hexDigit, hexDigit),
-        sequence(literal("\\"), charSet("tn")),
-        sequence(not(literal("\\u")), literal("\\"), any()))),
+    letter      = choice(
+                    charRange('a', 'z'),
+                    charRange('A', 'Z')),
 
-    character = named$("character", choice(escape, notCharSet("\n\\"))),
+    nameChar    = choice(
+                    letter,
+                    digit,
+                    literal("_")),
 
-    range = named$("range", token(
-        literal("["),
-        captureText("first", character),
-        literal("-"),
-        captureText("last", character),
-        literal("]"))),
+    num         = token(oneMore(digit)),
 
-    charSet = named$("charSet", token(
-        literal("["),
-        captureText("charSet", oneMore(not(literal("]")), character)),
-        literal("]"))),
+    exprLit     = keyword("expr"),
 
-    notCharSet = named$("notCharSet", token(
-        literal("^["),
-        captureText("notCharSet", oneMore(not(literal("]"), character))),
-        literal("]"))),
+    dropLit     = keyword("drop"),
 
-    stringLit = named$("stringLit", token(
-        literal("\""),
-        captureText("literal", zeroMore(not(literal("\"")), character)),
-        literal("\""))),
+    left_assoc  = keyword("left_assoc"),
 
-    name = named$("name", token(choice(
-        sequence(not(reserved), letter, zeroMore(nameChar)),
-        sequence(literal("'"), aloUntil(any(), literal("'")))))),
+    left_recur  = keyword("left_recur"),
 
-    nameOrDollar = choice(captureText("name", name), capture("dollar", literal("$"))),
+    reserved    = choice(
+                    exprLit,
+                    dropLit,
+                    left_assoc,
+                    left_recur),
 
-    reference = sequence(
-        captureText("name", name),
-        optional(token(literal("allow")),
-            lBrace, aloSeparated(captureTextGrouped("allowed", name), comma), rBrace),
-        optional(token(literal("forbid")),
-            lBrace, aloSeparated(captureTextGrouped("forbidden", name), comma), rBrace)),
+    escape      = named$("escape", choice(
+                    sequence(
+                        literal("\\u"),
+                        hexDigit,
+                        hexDigit,
+                        hexDigit,
+                        hexDigit),
+                    sequence(
+                        literal("\\"),
+                        charSet("tn")),
+                    sequence(
+                        not(literal("\\u")),
+                        literal("\\"),
+                        any()))),
 
-    captureSuffix = group$("captureSuffixes", capture(choice(
-        capture("capture",
-            sequence(token(literal(":"), optional(capture("captureText", literal("+")))))),
-        capture("accessor",
-            sequence(minus, nameOrDollar)),
-        capture("group",
-            sequence(hash, nameOrDollar)),
-        capture("tag",
-            sequence(tilda, nameOrDollar))))),
+    character   = named$("character", choice(
+                    escape,
+                    notCharSet("\n\\"))),
+
+    name        = named$("name", token(choice(
+                    sequence(
+                        not(reserved),
+                        letter,
+                        zeroMore(nameChar)),
+                    sequence(
+                        literal("'"),
+                        aloUntil(any(), literal("'")))))),
+
+    nameOrDollar = choice(
+                    captureText("name", name),
+                    capture("dollar", dollar)),
+
+    // PARSING EXPRESSIONS
+
+    range       = named$("range", token(
+                    literal("["),
+                    captureText("first", character),
+                    literal("-"),
+                    captureText("last", character),
+                    literal("]"))),
+
+    charSet     = named$("charSet", token(
+                    literal("["),
+                    captureText("charSet", oneMore(
+                        not(literal("]")),
+                        character)),
+                    literal("]"))),
+
+    notCharSet  = named$("notCharSet", token(
+                    literal("^["),
+                    captureText("notCharSet", oneMore(not(literal("]"), character))),
+                    literal("]"))),
+
+    stringLit   = named$("stringLit", token(
+                    literal("\""),
+                    captureText("literal", zeroMore(not(literal("\"")), character)),
+                    literal("\""))),
+
+    reference   = sequence(
+                    captureText("name", name),
+                    optional(
+                        token("allow"),
+                        lBrace,
+                        aloSeparated(captureTextGrouped("allowed", name), comma),
+                        rBrace),
+                    optional(
+                        token("forbid"),
+                        lBrace,
+                        aloSeparated(captureTextGrouped("forbidden", name), comma),
+                        rBrace)),
+
+    captureSuffix
+                = group$("captureSuffixes", capture(choice(
+                    capture("capture",
+                        token(literal(":"), optional(capture("captureText", literal("+"))))),
+                    capture("accessor",
+                        sequence(minus, nameOrDollar)),
+                    capture("group",
+                        sequence(hash, nameOrDollar)),
+                    capture("tag",
+                        sequence(tilda, nameOrDollar))))),
 
     expr = reference("expr"),
 
-    parsingExpression = recursive$("expr", cluster(
+    parsingExpression
+                = named$("expr", cluster(
 
-        // NOTE(norswap)
-        // Using left associativity for choice and sequence ensures that sub-expressions
-        // have higher precedence. So we don't get pesky choice of choices or sequence of sequences.
+                    // NOTE(norswap)
+                    // Using left associativity for choice and sequence ensures that sub-expressions
+                    // must have higher precedence. This way, we avoid pesky choice of choices or
+                    // sequence of sequences.
 
-        groupLeftAssoc(++i,
-            named$("choice", capture("choice", aloSeparated(expr, slash)))),
+                    groupLeftAssoc(++i,
+                        named$("choice", capture("choice", aloSeparated(expr, slash)))),
 
-        groupLeftAssoc(++i,
-            capture("sequence", sequence(expr, oneMore(expr)))),
+                    groupLeftAssoc(++i,
+                        capture("sequence", sequence(expr, oneMore(expr)))),
 
-        group(++i,
-            capture("and", sequence(and, expr)),
-            capture("not", sequence(bang, expr))),
+                    groupLeftRec(++i, // binary & capture
+                        capture("until",        sequence(expr, starPlus, expr)),
+                        capture("aloUntil",     sequence(expr, plusPlus, expr)),
+                        capture("separated",    sequence(expr, comma, expr)),
+                        capture("aloSeparated", sequence(expr, commaPlus, expr)),
+                        capture("capture",      sequence(
+                                                    choice(expr, capture("marker", dot)),
+                                                    oneMore(captureSuffix)))),
 
-        group(++i,
-            capture("until", sequence(expr, starPlus, expr)),
-            capture("aloUntil", sequence(expr, plusPlus, expr)),
-            capture("separated", sequence(expr, comma, expr)),
-            capture("aloSeparated", sequence(expr, commaPlus, expr)),
-            capture("optional", sequence(expr, qMark)),
-            capture("zeroMore", sequence(expr, star)),
-            capture("oneMore", sequence(expr, plus))),
+                    group(++i, // prefix
+                        capture("and",   sequence(and, expr)),
+                        capture("not",   sequence(bang, expr)),
+                        capture("token", sequence(percent, expr)),
+                        capture("dumb",  sequence(hat, expr))),
 
-        groupLeftRec(++i,
-            capture("capture", sequence(expr, oneMore(captureSuffix)))),
+                    group(++i, // suffix
+                        capture("optional", sequence(expr, qMark)),
+                        capture("zeroMore", sequence(expr, star, not(plus))),
+                        capture("oneMore",  sequence(expr, plus, not(plus)))),
 
-        group(++i,
-            sequence(lParen, exprDropPrecedence(expr), rParen),
-            capture("drop", sequence(dropLit, expr)),
-            capture("ref", reference),
-            capture("any", underscore),
-            capture("charRange", range),
-            captureText("stringLit", stringLit),
-            captureText("charSet", charSet),
-            captureText("notCharSet", notCharSet)))),
+                    group(++i, // primary
+                        sequence(lParen, exprDropPrecedence(expr), rParen),
+                        capture("drop", sequence(dropLit, expr)),
+                        capture("ref", reference),
+                        capture("any", underscore),
+                        capture("charRange", range),
+                        captureText("stringLit", stringLit),
+                        captureText("charSet", charSet),
+                        captureText("notCharSet", notCharSet)))),
 
-    exprAnnotation = sequence(
-        literal("@"),
-        choice(
-            captureText("precedence", num),
-            capture("increment", plus),
-            capture("same", equal),
-            capture("left_assoc", left_assoc),
-            capture("left_recur", left_recur),
-            captureText("name", name))),
+        exprAnnotation
+                = sequence(
+                    literal("@"),
+                    choice(
+                        captureText("precedence", num),
+                        capture("increment", plus),
+                        capture("same", equal),
+                        capture("left_assoc", left_assoc),
+                        capture("left_recur", left_recur),
+                        captureText("name", name))),
 
-    exprCluster = named$("cluster", capture("cluster", sequence(
-        exprLit,
-        oneMore(captureGrouped("alts", sequence(
-            arrow,
-            capture("expr", filter(null, $(reference("choice")), parsingExpression)),
-            oneMore(captureGrouped("annotations", exprAnnotation)))))))),
+        // TOP LEVEL
 
-    rule = named$("rule", sequence(
-        captureText("ruleName", name),
-        zeroMore(captureSuffix),
-        optional(capture("dumb", literal("!"))),
-        optional(capture("token", literal("%"))),
-        equal,
-        choice(exprCluster, capture("expr", parsingExpression)),
-        semi)),
+        exprCluster
+                = named$("cluster", capture("cluster", sequence(
+                    exprLit,
+                    oneMore(captureGrouped("alts", sequence(
+                        arrow,
+                        capture("expr", filter(null, $(reference("choice")), parsingExpression)),
+                        zeroMore(captureGrouped("annotations", exprAnnotation)))))))),
 
-    root = named$("grammar", oneMore(captureGrouped("rules", rule)));
+        rule    = named$("rule", sequence(
+                    captureText("ruleName", name),
+                    zeroMore(captureSuffix),
+                    optional(capture("dumb", hat)),
+                    optional(capture("token", percent)),
+                    equal,
+                    choice(
+                        exprCluster,
+                        capture("expr", parsingExpression)),
+                    semi)),
+
+        root    = named$("grammar", oneMore(captureGrouped("rules", rule)));
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static final Grammar grammar = Autumn.grammarFromExpression(root);
+    private static ParsingExpression keyword(String string)
+    {
+        return token(literal(string), not(nameChar));
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public static final Grammar grammar = Grammar.fromRoot(root).build();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 }

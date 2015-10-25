@@ -1,16 +1,13 @@
 package com.norswap.autumn.parsing.graph;
 
-import com.norswap.autumn.parsing.ParsingExpressionFactory;
+import com.norswap.autumn.parsing.ParsingExpression;
 import com.norswap.autumn.parsing.expressions.Reference;
-import com.norswap.autumn.parsing.expressions.common.ParsingExpression;
-import com.norswap.util.graph_visit.GraphVisitor;
-import com.norswap.util.graph_visit.NodeState;
-import com.norswap.util.slot.Slot;
+import com.norswap.util.Array;
+import com.norswap.util.graph.NodeState;
+import com.norswap.util.graph.Slot;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Resolves all resolvable references underneath the visited expression graph. Resolvable references
@@ -18,15 +15,10 @@ import java.util.Set;
  * <p>
  * As a result of the resolution process, all {@link Reference} nodes that have been resolved are
  * pruned from the expression tree and replaced with edge towards the expression they referenced,
- * hence making the tree a graph.
- * <p>
- * If there are unresolved references, an exception is thrown (but if caught, the above still
- * applies).
- * <p>
- * This is the preferred way to resolve references. If performance is critical, look into {@link
- * ParsingExpressionFactory#recursive$}.
+ * hence making the tree a graph. ALl unresolved reference targets are  put into {@link
+ * #unresolved}.
  */
-public class ReferenceResolver extends GraphVisitor<ParsingExpression>
+public final class ReferenceResolver extends ParsingExpressionVisitor
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -39,57 +31,48 @@ public class ReferenceResolver extends GraphVisitor<ParsingExpression>
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Maps names (e.g. rule names) to the expression they designate.
-     */
-    public Map<String, ParsingExpression> named = new HashMap<>();
+    private HashMap<String, ParsingExpression> named = new HashMap<>();
 
-    // ---------------------------------------------------------------------------------------------
+    private HashSet<Slot<ParsingExpression>> references = new HashSet<>();
 
-    /**
-     * All the regular TODO
-     */
-    public Set<Slot<ParsingExpression>> references = new HashSet<>();
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    public ReferenceResolver()
-    {
-        super(Walks.inPlace);
-    }
+    public final HashSet<String> unresolved = new HashSet<>();
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void before(ParsingExpression pe)
+    public void before(Slot<ParsingExpression> node)
     {
-        String name = pe.name();
+        ParsingExpression initial = node.initial;
 
-        if (name != null)
+        if (initial.name != null)
         {
-            named.put(name, pe);
+            named.put(initial.name, initial);
         }
     }
 
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void afterChild(ParsingExpression pe, Slot<ParsingExpression> slot, NodeState state)
+    public void afterRoot(Slot<ParsingExpression> root, NodeState state)
     {
-        if (slot.get() instanceof Reference)
+        ParsingExpression initial = root.initial;
+
+        if (initial instanceof Reference)
         {
-            references.add(slot);
+            references.add(root);
         }
     }
 
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void afterRoot(Slot<ParsingExpression> slot, NodeState state)
+    public void afterChild(Slot<ParsingExpression> parent, Slot<ParsingExpression> child, NodeState state)
     {
-        if (slot.get() instanceof Reference)
+        ParsingExpression initial = child.initial;
+
+        if (initial instanceof Reference)
         {
-            references.add(slot);
+            references.add(child);
         }
     }
 
@@ -98,18 +81,26 @@ public class ReferenceResolver extends GraphVisitor<ParsingExpression>
     @Override
     public void conclude()
     {
-        HashSet<String> unresolved = new HashSet<>();
+        super.conclude();
+        named = null;
+        references = null;
+    }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    @Override
+    protected void applyChanges(Array<Slot<ParsingExpression>> modified)
+    {
         for (Slot<ParsingExpression> slot: references)
         {
-            ParsingExpression target = slot.get();
+            ParsingExpression target = slot.initial;
             String name;
             int i = 0;
 
             // References can be chained!
 
             do {
-                name = ((Reference)target).target;
+                name = ((Reference) target).target;
                 target = named.get(name);
 
                 if (++i > REFERENCE_CHAIN_LIMIT)
@@ -123,16 +114,16 @@ public class ReferenceResolver extends GraphVisitor<ParsingExpression>
             {
                 unresolved.add(name);
             }
+            else if (slot.parent == null)
+            {
+                slot.assigned = target;
+                target.name = name;
+            }
             else
             {
-                slot.set(target);
+                slot.parent.setChild(slot.index, target);
+                target.name = name;
             }
-        }
-
-        if (!unresolved.isEmpty())
-        {
-            throw new RuntimeException(
-                "There were unresolved references in the grammar: " + unresolved);
         }
     }
 

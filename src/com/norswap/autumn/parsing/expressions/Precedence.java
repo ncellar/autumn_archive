@@ -1,8 +1,8 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 
 public final class Precedence extends UnaryParsingExpression
 {
@@ -28,49 +28,19 @@ public final class Precedence extends UnaryParsingExpression
         }
         else
         {
-            int oldFlags = state.flags;
             int oldPrecedence = state.precedence;
             state.precedence = precedence;
-
-            if (precedence > 0)
-            {
-                // If a precedence level is set, calling a sub-expression at the same position with
-                // another precedence might yield a different result, so don't memoize.
-
-                state.forbidMemoization();
-            }
 
             operand.parse(parser, state);
 
             state.precedence = oldPrecedence;
-            state.flags = oldFlags;
         }
     }
 
     // ---------------------------------------------------------------------------------------------
 
     @Override
-    public void appendContentTo(StringBuilder builder)
-    {
-        if (precedence == NONE)
-        {
-            builder.append("noPrecedence(");
-        }
-        else
-        {
-            builder.append("precedence(");
-            builder.append(precedence);
-            builder.append(", ");
-        }
-
-        operand.appendTo(builder);
-        builder.append(")");
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    @Override
-    public String ownPrintableData()
+    public String ownDataString()
     {
         return String.valueOf(precedence);
     }

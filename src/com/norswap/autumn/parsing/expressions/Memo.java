@@ -1,9 +1,9 @@
 package com.norswap.autumn.parsing.expressions;
 
-import com.norswap.autumn.parsing.OutputChanges;
-import com.norswap.autumn.parsing.ParseState;
+import com.norswap.autumn.parsing.state.ParseChanges;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.Parser;
-import com.norswap.autumn.parsing.expressions.common.UnaryParsingExpression;
+import com.norswap.autumn.parsing.expressions.abstrakt.UnaryParsingExpression;
 
 public final class Memo extends UnaryParsingExpression
 {
@@ -12,22 +12,16 @@ public final class Memo extends UnaryParsingExpression
     @Override
     public void parse(Parser parser, ParseState state)
     {
-        if (state.isMemoizationForbidden())
-        {
-            operand.parse(parser, state);
-            return;
-        }
-
-        OutputChanges changes = parser.memoHandler.get(this, state);
+        ParseChanges changes = state.memo.get(this, state);
 
         if (changes != null)
         {
-            changes.mergeInto(state);
+            state.merge(changes);
             return;
         }
 
         operand.parse(parser, state);
-        parser.memoHandler.memoize(operand, state, new OutputChanges(state));
+        state.memo.memoize(operand, state, state.extract());
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
