@@ -1,11 +1,11 @@
 package com.norswap.autumn.parsing;
 
-import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.autumn.parsing.graph.Copier;
 import com.norswap.autumn.parsing.graph.Nullability;
 import com.norswap.autumn.parsing.graph.Printer;
+import com.norswap.autumn.parsing.state.ParseState;
 import com.norswap.util.DeepCopy;
-
+import static java.lang.String.format;
 import java.util.function.Predicate;
 
 /**
@@ -22,7 +22,6 @@ public abstract class ParsingExpression implements DeepCopy
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     public String name;
-    public int flags;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // PARSING
@@ -36,8 +35,7 @@ public abstract class ParsingExpression implements DeepCopy
     public int parseDumb(Parser parser, int position)
     {
         throw new UnsupportedOperationException(
-            "Parsing expression [" + this + "] of class "
-            + this.getClass().getSimpleName()
+            "Parsing expression [" + this + "]"
             + " doesn't support dumb parsing.");
     }
 
@@ -69,20 +67,48 @@ public abstract class ParsingExpression implements DeepCopy
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * @see {@link #toStringShort()}
+     * @see {@link #toStringOneLine}
      */
     @Override
     public String toString()
     {
-        return toString(true, true);
+        return toStringShort();
     }
 
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * Prints the shortest possible representation of this expression.
-     *
-     * If it has the name, use this name; otherwise print its structure cutting off the recursion
+     * Returns a string containing the hashcode of the parsing expression (based on pointer
+     * identity, as well as the name of the expression, if it has one.
+     */
+    public final String nameOrHashcode()
+    {
+        return name != null
+            ? name + " - " + format("%X", hashCode())
+            : format("%X", hashCode());
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Returns a string containing the simple (unqualified) name of the class of the expression, as
+     * well as the contents of {@link #nameOrHashcode}.
+     */
+    public final String toStringOneLine()
+    {
+        String data = ownDataString();
+        return format("%s (%s)%s",
+            getClass().getSimpleName(),
+            nameOrHashcode(),
+            data.isEmpty() ? "" : format(" [%s]", data));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Returns a string containing a short representation of this expression's structure.
+     * <p>
+     * If it has the name, use this name; otherwise output its structure cutting off the recursion
      * as soon as named nodes are encountered.
      */
     public final String toStringShort()
@@ -93,8 +119,9 @@ public abstract class ParsingExpression implements DeepCopy
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * Prints the structure of the expression, cutting off the recursion as soon as named nodes are
-     * encountered, except for this expression itself.
+     * Returns a string containing the structure of the expression, cutting off the recursion as
+     * soon as named nodes are encountered. If the expression itself is named, its structure will be
+     * shown regardless.
      */
     public final String toStringUnroll()
     {
@@ -104,9 +131,9 @@ public abstract class ParsingExpression implements DeepCopy
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * Prints the expression in full, with all its descendants. Recursion is indicated as such.
-     * No expression is printed more than once, references like "visited(EXPRESSION_NAME)" are
-     * used after the first time.
+     * Returns a string containing expression in full, with all its descendants. Recursion is marked
+     * as such. No expression is outputted more than once, references like
+     * "visited(EXPRESSION_NAME)" are used after the first time.
      */
     public final String toStringFull()
     {
@@ -122,6 +149,18 @@ public abstract class ParsingExpression implements DeepCopy
         // delete trailing newline
         builder.deleteCharAt(builder.length() - 1);
         return builder.toString();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Indicate whether the parsing expression node should be visible when printing a parsing
+     * expression graph. An invisible expression will have its children appear as children of
+     * its own parents.
+     */
+    public boolean isPrintable()
+    {
+        return true;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -164,9 +203,8 @@ public abstract class ParsingExpression implements DeepCopy
 
     /**
      * Parsing expression must use this method to perform a deep copy of their own data in place.
-     * They must not copy their extension objects, nor their children. They must, however, copy any
-     * wrapper around their children (e.g. an array), or the copy will overwrite the original
-     * parsing expression as well!
+     * They must not copy their children. They must, however, copy any wrapper around their children
+     * (e.g. an array), or the copy will overwrite the original parsing expression as well!
      * <p>
      * This is used by {@link #deepCopy()} and called right after a parsing expression was cloned.
      */

@@ -23,7 +23,7 @@ public final class Ensure
     {
         if (!x.equals(y))
         {
-            throw new TestFailed("got: " + x + ", expected: " + y);
+            throw new TestFailed("got:\n\n" + x + "\nexpected:\n\n" + y);
         }
     }
 
@@ -33,7 +33,7 @@ public final class Ensure
     {
         if (x.equals(y))
         {
-            throw new TestFailed("got: " + x + ", expected it to be different");
+            throw new TestFailed("got:\n\n" + x + "but expected it to be different");
         }
     }
 

@@ -13,7 +13,8 @@ import java.nio.charset.Charset;
  * Each source has an optional string identifier which is used to refer to it in textual output.
  * <p>
  * Users can configure how wide a tab character should appear (default: 4), and at which character
- * lines start (default: 0). Lines always start at 1.
+ * columns start (default: 0). Lines always start at 1. Internally, columns start at 0, the option
+ * only affects textual display.
  */
 public final class Source
 {
@@ -49,17 +50,17 @@ public final class Source
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Source fromZeroTerminatedString(String string, String identifier, int lineStart, int tabSize)
+    public static Source fromZeroTerminatedString(String string, String identifier, int columnStart, int tabSize)
     {
         string = string.replaceAll("\t", Strings.times(tabSize, " "));
-        return new Source(string, identifier, lineStart, tabSize);
+        return new Source(string, identifier, columnStart, tabSize);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Source fromString(String string, String identifier, int lineStart, int tabSize)
+    public static Source fromString(String string, String identifier, int columnStart, int tabSize)
     {
-        return fromZeroTerminatedString(string + '\0', identifier, lineStart, tabSize);
+        return fromZeroTerminatedString(string + '\0', identifier, columnStart, tabSize);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,36 +93,20 @@ public final class Source
             lineMap = new LineMap(text);
         }
 
-        return lineMap.positionFromOffset(fileOffset);
-    }
+        int line = lineMap.lineFromOffset(fileOffset);
+        int column = fileOffset - lineMap.linePosition(line);
 
-    // ---------------------------------------------------------------------------------------------
-
-    public int fileOffset(TextPosition position)
-    {
-        return fileOffset(position.line, position.column);
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    public int fileOffset(int line, int column)
-    {
-        if (lineMap == null)
-        {
-            lineMap = new LineMap(text);
-        }
-
-        return lineMap.offset(line, column, columnStart);
+        return new TextPosition(this, fileOffset, line, column);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Prints a position, prefixed by this source's identifier.
-     */
-    String posToString(TextPosition position)
+    @Override
+    public String toString()
     {
-        return position.toString() + " in source \"" + identifier + "\"";
+        return identifier != null
+            ? identifier
+            : String.format("(%X)", hashCode());
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

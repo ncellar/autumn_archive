@@ -1,7 +1,7 @@
 package com.norswap.util.graph;
 
 import com.norswap.util.Array;
-import com.norswap.util.Counter;
+import com.norswap.util.Int;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -131,9 +131,7 @@ public abstract class GraphVisitor<Node>
         afterRoot(slot, walk(slot));
 
         if (slot.assigned != null)
-        {
             modified.add(slot);
-        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -145,6 +143,17 @@ public abstract class GraphVisitor<Node>
     public final void cutoff()
     {
         cutoff = true;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Call this to mark some nodes as visited, no as not to visit their descendants (at least not
+     * through them).
+     */
+    public final void markVisited(Node node)
+    {
+        states.put(node, VISITED);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -200,7 +209,7 @@ public abstract class GraphVisitor<Node>
             return Array.empty();
         }
 
-        Counter c = new Counter();
+        Int c = new Int();
         return Array.map(children(node), x -> new Slot<>(x, node, c.i++));
     }
 

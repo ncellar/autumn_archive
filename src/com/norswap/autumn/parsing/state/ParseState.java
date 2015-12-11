@@ -1,27 +1,20 @@
 package com.norswap.autumn.parsing.state;
 
-import com.norswap.autumn.parsing.Extension;
 import com.norswap.autumn.parsing.ParseResult;
+import com.norswap.autumn.parsing.capture.Decorate;
+import com.norswap.autumn.parsing.capture.ParseTreeBuild;
 import com.norswap.autumn.parsing.config.DefaultMemoHandler;
 import com.norswap.autumn.parsing.config.MemoHandler;
-import com.norswap.autumn.parsing.config.ParserConfigurationBuilder;
-import com.norswap.autumn.parsing.expressions.ExpressionCluster;
-import com.norswap.autumn.parsing.expressions.ExpressionCluster.PrecedenceEntry;
-import com.norswap.autumn.parsing.expressions.Filter;
-import com.norswap.autumn.parsing.expressions.LeftRecursive;
+import com.norswap.autumn.parsing.config.ParserConfiguration;
 import com.norswap.autumn.parsing.expressions.Not;
 import com.norswap.autumn.parsing.expressions.Precedence;
 import com.norswap.autumn.parsing.ParsingExpression;
+import com.norswap.autumn.parsing.extensions.Extension;
 import com.norswap.autumn.parsing.source.Source;
-import com.norswap.autumn.parsing.state.CustomState.Inputs;
-import com.norswap.autumn.parsing.state.CustomState.Snapshot;
-import com.norswap.autumn.parsing.state.errors.DefaultErrorState;
-import com.norswap.autumn.parsing.state.errors.ErrorState;
-import com.norswap.autumn.parsing.tree.BuildParseTree;
+import com.norswap.autumn.parsing.errors.DefaultErrorState;
+import com.norswap.autumn.parsing.errors.ErrorState;
 import com.norswap.util.Array;
-import com.norswap.util.Caster;
-import com.norswap.util.JArrays;
-import com.norswap.util.annotations.Nullable;
+import net.nicoulaj.compilecommand.annotations.Inline;
 
 /**
  * An instance of this class is passed to every parsing expression invocation {@link
@@ -31,11 +24,12 @@ import com.norswap.util.annotations.Nullable;
  * manipulate during the parse. It contains things like the input position or the parse tree being
  * built.
  * <p>
+ * <p>
  * <strong>Committed and Uncommitted State</strong>
  * <p>
- * The parse state is divided between committed and uncommitted state. A very simple example is that
- * of the input position. When a parsing expression succeeds, it may consume some input and signal
- * so by setting the {@link #end} field. This is an uncommitted state change. Whenever {@link
+ * The parse state is divided between committed and uncommitted state. A very simple example is
+ * state is the input position. When a parsing expression succeeds, it may consume some input and
+ * signal so by setting the {@link #end} field. This is an uncommitted state change. Whenever {@link
  * #commit} is called, the value of {@code end} is assigned to {@link #start}. Subsequent expression
  * invocations using this state will parse at the new input position. Calling {@link #discard} will
  * discard all the uncommitted data.
@@ -57,6 +51,7 @@ import com.norswap.util.annotations.Nullable;
  * <p>
  * <strong>Parse Inputs</strong>
  * <p>
+ * <p>
  * The parse inputs are a particularly important subset of the parse state. The parse inputs consist
  * of all the state that influences the result of expression invocations. Obviously this includes
  * the input position, but also things like the precedence level or blocked expressions. Not all
@@ -69,6 +64,14 @@ import com.norswap.util.annotations.Nullable;
  * created on-demand, by calling {@link #inputs} and {@link #extract} respectively. This notion is
  * used for memoization: the default memoization strategy ({@link DefaultMemoHandler} is to maintain
  * a map from {@code ParseInputs} to {@code ParseChanges}.
+ * <p>
+ * <strong>Memoization</strong>
+ * <p>
+ * You can also customize the memoization strategy by supplying a custom {@link MemoHandler} to the
+ * {@link ParserConfiguration}. In general, a memoization handler memoizes the {@link ParseChanges}
+ * that results from invoking an expression with given {@link ParseInputs}. It is the strategy's
+ * responsibility to decide which invocations should be memoized, for how long, and the
+ * implementation.
  * <p>
  * <strong>Snapshots</strong>
  * <p>
@@ -106,12 +109,12 @@ import com.norswap.util.annotations.Nullable;
  * Despite its name, a snapshot is not a full picture of the parse state, and as such cannot be
  * passed around to recall arbitrary parse states.
  * <p>
+ * <p>
  * <strong>Custom Parse State</strong>
  * <p>
  * Users can add their own parse state, as classes implementing the {@link CustomState} interface.
- * These states can be accessed through the {@link #customStates} field. Custom states should be
- * part of an Autumn extension ({@link Extension}), and can be registered by calling {@link
- * ParserConfigurationBuilder#customState} from {@link Extension#register}.
+ * These states can be accessed through the {@link #customStates} field. Custom states are
+ * registered as part of an Autumn extension ({@link Extension}).
  * <p>
  * <strong>Manipulating End Positions</strong>
  * <p>
@@ -129,7 +132,7 @@ import com.norswap.util.annotations.Nullable;
  * <p>
  * The default implementation of {@link ErrorState} is {@link DefaultErrorState}. Its strategy is to
  * keep track of the errors occuring at the farthest error position. Users can supply their own
- * error handling strategy using {@link ParserConfigurationBuilder#errorState}.
+ * error handling strategy using {@link ParserConfiguration.Builder#errorState}.
  * <p>
  * While errors are part of the parse state, they escape the "commit paradigm". Since uncommitted
  * changes are usually discarded when an expression fails, we would end up losing all the error
@@ -166,8 +169,8 @@ import com.norswap.util.annotations.Nullable;
  * <p>
  * At the end of the parse, the parser will gather the results of the parse in a {@link ParseResult}
  * object. This includes whether the root expression of the grammar matched some input, whether it
- * matched the whole input, the parse tree generated, and an error report. Additionally, each custom
- * parse state can also supply custom results via the {@link CustomState#result} methods.
+ * matched the whole input, the parse tree generated, and an error report. Additionally, for each
+ * custom parse state, its final parse changes will also be included in the parse result.
  */
 public final class ParseState
 {
@@ -185,14 +188,14 @@ public final class ParseState
     public int blackStart;
 
     /**
-     * An uncommitted change to {@link #start}. You can think of it as the position of the end of
-     * the text matched by the parsing expression, or -1 if no match could be made.
+     * An uncommitted change to {@link #start}. You can think of it as one past the position of the
+     * end of the text matched by the parsing expression, or -1 if no match could be made.
      */
     public int end;
 
     /**
-     * An uncommitted change to {@link #blackStart}: the position of the last non-whitespace
-     * character preceding {@link #end}.
+     * An uncommitted change to {@link #blackStart}: one past the position of the last
+     * non-whitespace character preceding {@link #end}.
      */
     public int blackEnd;
 
@@ -207,17 +210,10 @@ public final class ParseState
     public boolean recordErrors;
 
     /**
-     * Holds a set of mapping between parsing expressions ({@link ExpressionCluster} and {@link
-     * LeftRecursive} instances whose invocation is ongoing) and their seed (an instance of {@link
-     * ParseChanges}).
-     */
-    public @Nullable Array<Seed> seeds;
-
-    /**
      * The parse tree which is to be the parent of parse trees produced by captures in the parsing
      * expression.
      */
-    public BuildParseTree tree;
+    public ParseTreeBuild tree;
 
     /**
      * The number of committed children of {@link #tree}. Further children are uncommitted.
@@ -230,27 +226,9 @@ public final class ParseState
     public final ErrorState errors;
 
     /**
-     * TODO
+     * See {@link ParseState}, section "Memoization".
      */
     public final MemoHandler memo;
-
-    /**
-     * The current cluster alternate; set by {@link ExpressionCluster} and read by {@link Filter}.
-     * TODO unsafe, but clunky to begin with; rework the filtering mechanism
-     */
-    public ParsingExpression clusterAlternate;
-
-    /**
-     * A set of blocked {@link LeftRecursive} parsing expression. Invoking these expressions
-     * will never succeed.
-     */
-    public Array<LeftRecursive> blocked;
-
-    /**
-     * Holds a set of mapping between {@link ExpressionCluster} instances whose invocation is
-     * ongoing and their current precedence level.
-     */
-    public Array<PrecedenceEntry> minPrecedence;
 
     /**
      * A set of additional user-defined parse states.
@@ -259,35 +237,16 @@ public final class ParseState
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Creates the parse state, given the initial inputs, error state and custom states factories.
-     */
     public ParseState(
-        ParseInputs inputs,
         ErrorState errorState,
         MemoHandler memoHandler,
-        Array<CustomStateFactory> customFactories)
+        CustomState[] customStates)
     {
-        this.end = 0;
-        this.blackEnd = 0;
-        this.tree = new BuildParseTree();
-
+        this.tree = new ParseTreeBuild(true, new Decorate[0]);
         this.memo = memoHandler;
         this.errors = errorState;
-
-        this.start = inputs.start;
-        this.blackStart = inputs.blackStart;
-        this.precedence = inputs.precedence;
-        this.recordErrors = inputs.recordErrors;
-        this.seeds = inputs.seeds != null ? inputs.seeds.clone() : null;
-        this.blocked = inputs.blocked.clone();
-        this.minPrecedence = inputs.minPrecedence.clone();
-
-        this.customStates = new CustomState[customFactories.size()];
-        for (int i = 0; i < customStates.length; ++i)
-        {
-            customStates[i] = customFactories.get(i).build(Caster.cast(inputs.customInputs[i]));
-        }
+        this.recordErrors = true;
+        this.customStates = customStates;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -295,6 +254,7 @@ public final class ParseState
     /**
      * Advances the end and black end positions by n characters.
      */
+    @Inline
     public void advance(int n)
     {
         end += n;
@@ -306,6 +266,7 @@ public final class ParseState
     /**
      * Sets the end position to indicate that no match could be found.
      */
+    @Inline
     public void fail()
     {
         this.end = -1;
@@ -317,6 +278,7 @@ public final class ParseState
     /**
      * Indicates whether the match was successful.
      */
+    @Inline
     public boolean succeeded()
     {
         return end != -1;
@@ -327,6 +289,7 @@ public final class ParseState
     /**
      * Indicates whether the match was unsuccessful.
      */
+    @Inline
     public boolean failed()
     {
         return end == -1;
@@ -342,6 +305,7 @@ public final class ParseState
      * In some cases, an expression may elect not to report a failure, in which case it must call
      * {@link ParseState#fail} directly instead (e.g. left-recursion for blocked recursive calls).
      */
+    @Inline
     public void fail(ParsingExpression pe)
     {
         this.end = -1;
@@ -355,83 +319,60 @@ public final class ParseState
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public void commit()
+    @Inline
+    public ParseInputs inputs(ParsingExpression pe)
     {
-        if (end > start)
-        {
-            seeds = null;
-        }
-
-        start = end;
-        blackStart = blackEnd;
-        treeChildrenCount = tree.childrenCount();
+        Array<ParseInputs.Entry> custom = new Array<>();
 
         for (CustomState state: customStates)
-        {
-            state.commit();
-        }
+            if (state != null)
+                custom.add(new ParseInputs.Entry(state, state.inputs(this)));
+
+        return ParseInputs.create(
+            pe,
+            start,
+            blackStart,
+            precedence,
+            recordErrors,
+            custom);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public void discard()
+    @Inline
+    public void load(ParseInputs inputs)
     {
-        end = start;
-        blackEnd = blackStart;
-        tree.truncate(treeChildrenCount);
+        this.start = inputs.start();
+        this.blackStart = inputs.blackStart();
+        this.precedence = inputs.precedence();
+        this.recordErrors = inputs.recordErrors();
 
-        for (CustomState state: customStates)
-        {
-            state.discard();
-        }
+        inputs.customInputs().forEach(e -> e.state.load(e.input));
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public ParseChanges extract()
-    {
-        return new ParseChanges(
-            end,
-            blackEnd,
-            tree.children.copyFromIndex(treeChildrenCount),
-            JArrays.map(customStates, CustomChanges[]::new, CustomState::extract));
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    public void merge(ParseChanges changes)
-    {
-        end = changes.end;
-        blackEnd = changes.blackEnd;
-
-        if (changes.children != null)
-        {
-            tree.addAll(changes.children);
-        }
-
-        if (changes.customChanges != null)
-        for (int i = 0; i < customStates.length; ++i)
-        {
-            customStates[i].merge(changes.customChanges[i]);
-        }
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
+    @Inline
     public ParseStateSnapshot snapshot()
     {
+        Object[] snapshots = new Object[customStates.length];
+
+        for (int i = 0; i < customStates.length; ++i)
+            if (customStates[i] != null)
+                snapshots[i] = customStates[i].snapshot(this);
+
         return new ParseStateSnapshot(
             start,
             blackStart,
             end,
             blackEnd,
             treeChildrenCount,
-            seeds,
-            JArrays.map(customStates, Snapshot[]::new, CustomState::snapshot));
+            snapshots);
     }
 
     // ---------------------------------------------------------------------------------------------
 
+    @Inline
     public void restore(ParseStateSnapshot snapshot)
     {
         start               = snapshot.start;
@@ -439,45 +380,84 @@ public final class ParseState
         end                 = snapshot.end;
         blackEnd            = snapshot.blackEnd;
         treeChildrenCount   = snapshot.treeChildrenCount;
-        seeds               = snapshot.seeds;
 
         tree.truncate(treeChildrenCount);
 
-        for (int i = 0; i < customStates.length; i++)
-        {
-            customStates[i].restore(snapshot.customSnapshots[i]);
+        for (int i = 0; i < customStates.length; i++) {
+            if (customStates[i] != null) customStates[i].restore(snapshot.customSnapshots[i], this);
         }
     }
 
     // ---------------------------------------------------------------------------------------------
 
+    @Inline
     public void uncommit(ParseStateSnapshot snapshot)
     {
         start               = snapshot.start;
         blackStart          = snapshot.blackStart;
         treeChildrenCount   = snapshot.treeChildrenCount;
-        seeds               = snapshot.seeds;
 
-        for (int i = 0; i < customStates.length; ++i)
-        {
-            customStates[i].uncommit(snapshot.customSnapshots[i]);
+        for (int i = 0; i < customStates.length; ++i) {
+            if (customStates[i] != null) customStates[i].uncommit(snapshot.customSnapshots[i], this);
         }
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public ParseInputs inputs(ParsingExpression pe)
+    @Inline
+    public void discard()
     {
-        return new ParseInputs(
-            pe,
-            start,
-            blackStart,
-            precedence,
-            recordErrors,
-            seeds.clone(),
-            blocked.clone(),
-            minPrecedence.clone(),
-            JArrays.map(customStates, Inputs[]::new, CustomState::inputs));
+        end = start;
+        blackEnd = blackStart;
+        tree.truncate(treeChildrenCount);
+
+        for (CustomState state: customStates) {
+            if (state != null) state.discard(this);
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Inline
+    public void commit()
+    {
+        start = end;
+        blackStart = blackEnd;
+        treeChildrenCount = tree.childrenCount();
+
+        for (CustomState state: customStates)  {
+            if (state != null) state.commit(this);
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Inline
+    public ParseChanges extract()
+    {
+        return new ParseChanges(
+            end,
+            blackEnd,
+            tree.childrenFromIndex(treeChildrenCount),
+            Array.map(customStates, x -> x == null ? null : x.extract(this)));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    @Inline
+    public void merge(ParseChanges changes)
+    {
+        end = changes.end;
+        blackEnd = changes.blackEnd;
+
+        if (changes.children != null)  {
+            tree.addChildren(changes.children);
+        }
+
+        int size = changes.customChanges.size();
+        for (int i = 0; i < size; ++i)  {
+            if (customStates[i] != null) customStates[i].merge(changes.customChanges.get(i), this);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -485,8 +465,7 @@ public final class ParseState
     @Override
     public String toString()
     {
-        return String.format("(%X) [%d/%d - %d/%d[ tree(%d/%d)%s",
-            hashCode(),
+        return String.format("[%d/%d - %d/%d] tree(%d/%d) %s",
             start,
             blackStart,
             end,

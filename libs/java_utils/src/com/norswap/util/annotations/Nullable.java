@@ -12,7 +12,13 @@ import java.lang.annotation.Target;
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE_USE, ElementType.TYPE_PARAMETER})
+@Target({
+    ElementType.TYPE_USE,
+    ElementType.TYPE_PARAMETER,
+    // All of these for the benefits of AutoValue, otherwise subsumed by TYPE_USE.
+    ElementType.FIELD,
+    ElementType.LOCAL_VARIABLE,
+    ElementType.METHOD})
 public @interface Nullable
 {
 }

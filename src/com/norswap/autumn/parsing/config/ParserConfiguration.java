@@ -1,8 +1,9 @@
 package com.norswap.autumn.parsing.config;
 
-import com.norswap.autumn.parsing.state.CustomStateFactory;
-import com.norswap.autumn.parsing.state.errors.ErrorState;
-import com.norswap.util.Array;
+import com.norswap.autumn.parsing.errors.DefaultErrorState;
+import com.norswap.autumn.parsing.errors.ErrorState;
+
+import java.util.function.Supplier;
 
 /**
  * [Immutable] The parser configuration allows the user to configure operational details of the
@@ -12,16 +13,13 @@ public interface ParserConfiguration
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    static ParserConfiguration build()
-    {
-        return new ParserConfigurationBuilder().build();
-    }
+    ParserConfiguration DEFAULT = new Builder().build();
 
-    // ---------------------------------------------------------------------------------------------
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    static ParserConfigurationBuilder with()
+    static Builder with()
     {
-        return new ParserConfigurationBuilder();
+        return new Builder();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -30,7 +28,59 @@ public interface ParserConfiguration
 
     MemoHandler memoHandler();
 
-    Array<CustomStateFactory> customStateFactories();
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    class Builder
+    {
+        // -----------------------------------------------------------------------------------------
+
+        // Underscore to not conflict with function names in javadoc tags.
+
+        private Supplier<? extends ErrorState> _errorState;
+        private Supplier<? extends MemoHandler> _memoHandler;
+
+        // -----------------------------------------------------------------------------------------
+
+        public Builder errorState(Supplier<? extends ErrorState> supplier)
+        {
+            this._errorState = supplier;
+            return this;
+        }
+
+        // -----------------------------------------------------------------------------------------
+
+        public Builder memoStrategy(Supplier<? extends MemoHandler> supplier)
+        {
+            this._memoHandler = supplier;
+            return this;
+        }
+
+        // -----------------------------------------------------------------------------------------
+
+        public ParserConfiguration build()
+        {
+            return new ParserConfiguration()
+            {
+                @Override
+                public ErrorState errorState()
+                {
+                    return _errorState != null
+                        ? _errorState.get()
+                        : new DefaultErrorState();
+                }
+
+                @Override
+                public MemoHandler memoHandler()
+                {
+                    return _memoHandler != null
+                        ? _memoHandler.get()
+                        : new DefaultMemoHandler();
+                }
+            };
+        }
+
+        // -----------------------------------------------------------------------------------------
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 }

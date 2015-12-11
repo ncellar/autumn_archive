@@ -9,7 +9,9 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 /**
- *
+ * This visitor applies to given transformation over all nodes. It memoizes the result of all
+ * transformations, so that the same node will receive the same replacement (the same object)
+ * everywhere it appears.
  */
 public final class Transformer extends ParsingExpressionVisitor
 {
@@ -29,9 +31,13 @@ public final class Transformer extends ParsingExpressionVisitor
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public void afterChild(Slot<ParsingExpression> parent, Slot<ParsingExpression> child, NodeState state)
+    public void afterChild(
+        Slot<ParsingExpression> parent,
+        Slot<ParsingExpression> child,
+        NodeState state)
     {
-        child.assigned = transformations.computeIfAbsent(child.initial, key -> transform.apply(key));
+        child.assigned =
+            transformations.computeIfAbsent(child.initial, key -> transform.apply(key));
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -40,7 +46,6 @@ public final class Transformer extends ParsingExpressionVisitor
     public void afterRoot(Slot<ParsingExpression> slot, NodeState state)
     {
         afterChild(null, slot, state);
-
     }
 
     // ---------------------------------------------------------------------------------------------

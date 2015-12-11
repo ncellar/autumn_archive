@@ -97,6 +97,8 @@ public final class HandleMap implements DeepCopy
 
     public void unset(int handle)
     {
+        // TODO BUG: this will break retrieval
+
         int index = getIndex(handle);
 
         if (index >= 0)

@@ -17,12 +17,15 @@ public final class Autumn
     // PARSE A STRING
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * {@code parseString(grammar, string, ParserConfiguration.DEFAULT)}
+     */
     public static ParseResult parseString(Grammar grammar, String string)
     {
         return parseSource(
             grammar,
             Source.fromString(string).build(),
-            ParserConfiguration.build());
+            ParserConfiguration.DEFAULT);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -39,13 +42,16 @@ public final class Autumn
     // PARSE A FILE
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * {@code parseFile(grammar, inputFile, ParserConfiguration.DEFAULT))
+     */
     public static ParseResult parseFile(Grammar grammar, String inputFile)
         throws IOException
     {
         return parseSource(
             grammar,
             Source.fromFile(inputFile).build(),
-            ParserConfiguration.build());
+            ParserConfiguration.DEFAULT);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -63,12 +69,15 @@ public final class Autumn
     // PARSE A SOURCE OBJECT
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * {@code parseSource(grammar, source, ParserConfiguration.DEFAULT))
+     */
     public static ParseResult parseSource(Grammar grammar, Source source)
     {
         return parseSource(
             grammar,
             source,
-            ParserConfiguration.build());
+            ParserConfiguration.DEFAULT);
     }
 
     // ---------------------------------------------------------------------------------------------

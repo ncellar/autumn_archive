@@ -15,15 +15,37 @@ parsing expressions, look at [the ParsingExpression class][parsing-exp].
 
 [autumn]: https://github.com/norswap/autumn/blob/master/src/com/norswap/autumn/Autumn.java
 
-[java-example]: https://github.com/norswap/autumn/blob/master/src/com/norswap/autumn/test/parsing/JavaGrammarTest.java
+[java-example]:
+https://github.com/norswap/autumn/blob/master/src/com/norswap/autumn/test/languages/JavaTest.java
 
 [parse-state]:
 https://github.com/norswap/autumn/blob/master/src/com/norswap/autumn/parsing/state/ParseState.java
 
-[parsing-exp]: https://github.com/norswap/autumn/blob/master/src/com/norswap/autumn/parsing/ParsingExpression.java
+[parsing-exp]:
+https://github.com/norswap/autumn/blob/master/src/com/norswap/autumn/parsing/ParsingExpression.java
 
 ## Building
 
+    make fetchpom
+    rm -rf deps/jar
+    mv deps/fetched/jar deps/jar
     make build
 
 ... will output the class files under the `out/dev` directory.
+
+## Running Tests
+
+    make run t=MAIN_CLASS
+
+e.g.,
+
+    make run t=com.norswap.autumn.test.languages.JavaTest
+    make run t=com.norswap.autumn.test.languages.PythonTest
+    
+Note that running these will require to download some source code for the test to run over and to
+edit the test classes to set the proper path to the sources.
+
+We used [Guava][guava] to test Java and [Django][django] to test Python.
+
+[guava]: https://github.com/google/guava/releases/tag/v18.0-rc2
+[django]: https://github.com/django/django/releases/tag/1.9

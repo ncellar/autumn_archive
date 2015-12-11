@@ -5,8 +5,4 @@ package com.norswap.autumn.test;
  */
 public final class Scratchpad
 {
-    public static void main(String[] args)
-    {
-
-    }
 }

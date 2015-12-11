@@ -30,17 +30,11 @@ public class Pair<A, B> implements Cloneable
     @Override
     public boolean equals(Object object)
     {
-        if (object == null || !(object instanceof Pair)) {
-            return false;
-        }
-
-        Pair<?, ?> other = (Pair<?, ?>) object;
-
-        if (a == null && other.a != null || b == null && other.b != null) {
-            return false;
-        }
-
-        return (a == null || a.equals(other.a)) && (b == null || b.equals(other.b));
+        Pair<?, ?> other;
+        return object instanceof Pair
+            && (other = (Pair<?, ?>) object) != null
+            && (a == null ? other.a == null : a.equals(other.a))
+            && (b == null ? other.b == null : b.equals(other.b));
     }
 
     // ---------------------------------------------------------------------------------------------

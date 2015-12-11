@@ -1,7 +1,7 @@
 package com.norswap.autumn.test.parsing;
 
-import com.norswap.autumn.parsing.tree.ParseTree;
 import com.norswap.autumn.parsing.ParsingExpression;
+import com.norswap.autumn.parsing.capture.ParseTree;
 import com.norswap.autumn.test.Ensure;
 import com.norswap.autumn.test.TestRunner;
 
@@ -10,6 +10,7 @@ import java.util.List;
 import static com.norswap.autumn.parsing.ParsingExpressionFactory.*;
 import static com.norswap.autumn.test.parsing.Common.*;
 import static com.norswap.autumn.test.parsing.ParseTreeBuilder.$;
+import static com.norswap.autumn.parsing.ParsingExpressionFactory.$;
 
 public final class FeatureTests
 {
@@ -34,8 +35,6 @@ public final class FeatureTests
     };
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    // ---------------------------------------------------------------------------------------------
 
     ParsingExpression
 
@@ -148,7 +147,7 @@ public final class FeatureTests
 
     public void testMultipleCapture()
     {
-        tree = tree(sequence(oneMore(captureTextGrouped("a", literal("a")))), "aaa");
+        tree = tree(sequence(oneMore(captureText($(group("a")), literal("a")))), "aaa");
         List<ParseTree> aResults = tree.group("a");
 
         Ensure.equals(aResults.size(), 3);
@@ -180,18 +179,6 @@ public final class FeatureTests
                 $("right", $("+",
                     $("left", $("num", "2")),
                     $("right", $("num", "3"))))));
-
-            // [[+: [
-            //  left: [num: "1"],
-            //  right: [[+: [
-            //      left: [num: "2"],
-            //      right: [num: "3"]]]]]]],
-            //
-            // expected: [+: [
-            // left: [num: "1"],
-            // right: [+: [
-            //      left: [num: "2"],
-            //      right: [num: "3"]]]]]
 
             Ensure.equals(tree, expected);
         }
@@ -227,7 +214,6 @@ public final class FeatureTests
         pe = named$("expr", choice(
             precedence(1, leftAssociative(plus.deepCopy())),
             precedence(2, leftAssociative(mult.deepCopy())),
-            precedence(3, leftAssociative(exp.deepCopy())),
             num.deepCopy()));
 
         tree = tree(pe, "1+2*3");

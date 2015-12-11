@@ -2,9 +2,13 @@ package com.norswap.autumn.parsing;
 
 import com.norswap.autumn.Autumn;
 import com.norswap.autumn.parsing.config.ParserConfiguration;
+import com.norswap.autumn.parsing.extensions.Extension;
 import com.norswap.autumn.parsing.source.Source;
 import com.norswap.autumn.parsing.support.GrammarCompiler;
-import com.norswap.autumn.parsing.support.GrammarGrammar;
+import com.norswap.autumn.parsing.support.MetaGrammar;
+import com.norswap.autumn.parsing.support.dynext.DynExtExtension;
+import com.norswap.autumn.parsing.support.dynext.DynExtState;
+import com.norswap.util.Array;
 import com.norswap.util.annotations.Immutable;
 import com.norswap.util.graph.GraphVisitor;
 
@@ -50,10 +54,13 @@ public final class Grammar
     public final boolean processLeadingWhitespace;
 
     /**
-     * TODO
+     * Extensions used by the grammar.
      */
-    public final @Immutable Map<String, String> options;
+    public final @Immutable Array<Extension> extensions;
 
+    /**
+     * Build on-demand for {@link #getRule}.
+     */
     private Map<String, ParsingExpression> rulesByName;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -63,31 +70,20 @@ public final class Grammar
         Collection<ParsingExpression> rules,
         ParsingExpression whitespace,
         boolean processLeadingWhitespace,
-        Map<String, String> options)
+        Array<Extension> extensions)
     {
         this.root = root;
         this.rules = rules;
         this.whitespace = whitespace;
         this.processLeadingWhitespace = processLeadingWhitespace;
-        this.options = options;
+        this.extensions = extensions;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // TODO EXCEPTIONS
     public static GrammarBuilder fromSource(Source source)
     {
-        ParseResult result =
-            new Parser(GrammarGrammar.grammar, source, ParserConfiguration.build()).parseRoot();
-
-        if (!result.matched)
-        {
-            throw new ParseException(result.error);
-        }
-        else
-        {
-            return GrammarCompiler.compile(result.tree);
-        }
+        return new GrammarBuilder(source);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -105,32 +101,43 @@ public final class Grammar
     public ParsingExpression getRule(String name)
     {
         if (rulesByName == null)
-        {
-            rulesByName = new HashMap<>();
-
-            rules.forEach(
-            pe -> {
-                String key = pe.name;
-
-                if (key != null)
-                {
-                    rulesByName.put(key, pe);
-                }
-            });
-        }
+            getRules();
 
         return rulesByName.get(name);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public Grammar transform(GraphVisitor<ParsingExpression> visitor)
+    /**
+     * Returns a map from rule name to rules. The returned map backs the {@link #getRule} and should
+     * not be modified.
+     */
+    public Map<String, ParsingExpression> getRules()
     {
-        return new GrammarBuilder(this).transform(visitor).build();
+        if (rulesByName == null)
+        {
+            rulesByName = new HashMap<>();
+
+            rules.forEach(
+                pe -> {
+                    String key = pe.name;
+
+                    if (key != null)
+                    {
+                        rulesByName.put(key, pe);
+                    }
+                });
+        }
+
+        return rulesByName;
     }
 
     // ---------------------------------------------------------------------------------------------
 
+    /**
+     * Runs the given visitor over the rules, root and whitespace (in that order) of the grammar.
+     * Note that all of these expressions are visited as part of the same visit.
+     */
     public void compute(GraphVisitor<ParsingExpression> visitor)
     {
         visitor.partialVisit(root);

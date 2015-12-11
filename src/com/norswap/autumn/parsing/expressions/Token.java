@@ -22,9 +22,7 @@ public final class Token extends UnaryParsingExpression
         int pos = parser.whitespace.parseDumb(parser, state.end);
 
         if (pos > 0)
-        {
             state.end = pos;
-        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -35,12 +33,9 @@ public final class Token extends UnaryParsingExpression
         position = operand.parseDumb(parser, position);
 
         if (position == -1)
-        {
             return -1;
-        }
 
         int pos = parser.whitespace.parseDumb(parser, position);
-
         return pos > 0 ? pos : position;
     }
 

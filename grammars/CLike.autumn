@@ -1,0 +1,47 @@
+Root = (StructDef / Function)* ;
+
+StructDef = %"struct" `TYPEDEF { Identifier } %"{" (VarDeclPrefix %";")* %"}" ;
+
+VarDeclPrefix = Type Identifier ;
+
+VarDecl = VarDeclPrefix (%"=" Expr)? %";" ;
+
+Function = %"fun" Type Identifier %"(" VarDeclPrefix , %"," %")" %"{" Statement* %"}" ;
+
+Statement = VarDecl / Assignment / Expr %";" / %"return" Expr %";" ;
+
+//Assignment = `filter { Expr; allow: ID, QID; } %"=" Expr %";" ;
+Assignment = Expr %"=" Expr %";" ;
+
+Type = `TYPEUSE { Identifier } %"*"* ;
+
+Integer %= [0-9]+ ;
+
+Identifier %= ([a-z] / [A-Z])+ ;
+
+AtomicExpression = `TYPEUSE { Identifier } %"(" drop Expr , %"," %")"
+                 / Identifier %"(" drop Expr , %"," %")"
+                 / %"(" drop Expr %")"
+                 / Identifier
+                 / %"-"? Integer ;
+
+Expr = `expr {
+
+    @+_left_assoc
+    -> Expr %"+" Expr
+    -> Expr %"-" Expr
+
+    @+_left_assoc
+    -> Expr %"*" Expr
+    -> Expr %"/" Expr
+
+    @+
+    -> %"*" Expr
+    -> %"&" Expr
+
+    @+_left_recur
+    -> Expr (%"." Identifier)+
+
+    @+
+    -> AtomicExpression
+};

@@ -1,46 +1,43 @@
 package com.norswap.autumn.parsing.state;
 
+import com.norswap.autumn.parsing.extensions.Extension;
+
 /**
  * Interface implemented by classes that hold custom state to be added to {@link ParseState}. You
  * should read the documentation of {@link ParseState} before going forward.
  * <p>
  * Each method in this interface is called from the method with the equivalent name in {@code
  * ParseState}. Each instance of this class acts as its own mini {@code ParseState} complete with
- * its own snapshot, parse changes and inputs objects (to be defined by the user).
- * <p>
- * It would be tricky to parameterize this interface in terms of the concrete classes used for the
- * snapshot, parse changes and inputs objects. Instead we use the marker interfaces {@link
- * Snapshot}, {@link Inputs} and {@link Result}, as well as the interface {@link CustomChanges} in
- * the method signatures. You will have to cast these interfaces to the concrete type in the method
- * that accept them as parameter.
+ * its own snapshot, parse changes and inputs objects. The user can use any arbitrary object he
+ * wants for these (casting will be required).
  */
 public interface CustomState
+
+//* It would be tricky to parameterize this interface in terms of the concrete classes used for the
+//* snapshot, parse changes and inputs objects. Instead we use the marker interfaces {@link
+//* Snapshot}, {@link Inputs} and {@link Result}, as well as the interface {@link CustomChanges} in
+//* the method signatures. You will have to cast these interfaces to the concrete type in the method
+//* that accept them as parameter.
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    interface Snapshot {}
-    interface Inputs {}
-    interface Result {}
+    default Object inputs(ParseState state) { return null; }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
+    default Object snapshot(ParseState state) { return null; }
 
-    void commit();
+    default void restore(Object snapshot, ParseState state) {}
 
-    void discard();
+    default void uncommit(Object snapshot, ParseState state) {}
 
-    CustomChanges extract();
+    default void discard(ParseState state) {}
 
-    void merge(CustomChanges changes);
+    default void commit(ParseState state) {}
 
-    Snapshot snapshot();
+    default Object extract(ParseState state) { return null; }
 
-    void restore(Snapshot snapshot);
+    default void merge(Object changes, ParseState state) {}
 
-    void uncommit(Snapshot snapshot);
-
-    Inputs inputs();
-
-    Result result();
+    default void load(Object inputs) {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 }

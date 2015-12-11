@@ -1,0 +1,259 @@
+
+Root = `TOKEN { "" } `END_LINE_JOINING {} file_input ;
+
+NEWLINE = `NEWLINE {} ;
+INDENT = `INDENT {} ;
+DEDENT = `DEDENT {} ;
+
+'(' = `START_LINE_JOINING {} `TOKEN { "(" } ;
+')' = `END_LINE_JOINING   {} `TOKEN { ")" } ;
+'[' = `START_LINE_JOINING {} `TOKEN { "[" } ;
+']' = `END_LINE_JOINING   {} `TOKEN { "]" } ;
+'{' = `START_LINE_JOINING {} `TOKEN { "{" } ;
+'}' = `END_LINE_JOINING   {} `TOKEN { "}" } ;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+identifier =  (letter|"_") (letter | digit | "_")* ;
+letter     =  lowercase | uppercase ;
+lowercase  =  [a-z] ;
+uppercase  =  [A-Z] ;
+digit      =  [0-9] ;
+
+NAME = `TOKEN { identifier } ;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+stringliteral   =  (stringprefix)? (shortstring | longstring) ;
+stringprefix    =  "r" | "u" | "ur" | "R" | "U" | "UR" | "Ur" | "uR"
+                     | "b" | "B" | "br" | "Br" | "bR" | "BR" ;
+shortstring     =  "'" shortstringitem_a* "'" | "\"" shortstringitem_b* "\"" ;
+longstring      =  "'''" longstringitem_a* "'''"
+                     | "\"\"\"" longstringitem_b* "\"\"\"" ;
+shortstringitem_a =  shortstringchar_a | escapeseq ;
+shortstringitem_b =  shortstringchar_b | escapeseq ;
+longstringitem_a  =  longstringchar_a | escapeseq ;
+longstringitem_b  =  longstringchar_b | escapeseq ;
+shortstringchar_a =  ^[\\\n\'] ;
+shortstringchar_b =  ^[\\\n\"] ;
+longstringchar_a  =  !"'''" ^[\\] ;
+longstringchar_b  =  !"\"\"\"" ^[\\] ;
+escapeseq       =  "\\" _ ;
+
+STRING = `TOKEN { stringliteral } ;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+longinteger    =  integer ("l" | "L") ;
+integer        =  decimalinteger | octinteger | hexinteger | bininteger ;
+decimalinteger =  nonzerodigit digit* | "0" ;
+octinteger     =  "0" ("o" | "O") octdigit+ | "0" octdigit+ ;
+hexinteger     =  "0" ("x" | "X") hexdigit+ ;
+bininteger     =  "0" ("b" | "B") bindigit+ ;
+nonzerodigit   =  [1-9] ;
+octdigit       =  [0-7] ;
+bindigit       =  "0" | "1" ;
+hexdigit       =  digit | [a-f] | [A-F] ;
+floatnumber   =  pointfloat | exponentfloat ;
+pointfloat    =  (intpart)? fraction | intpart "." ;
+exponentfloat =  (intpart | pointfloat) exponent ;
+intpart       =  digit+ ;
+fraction      =  "." digit+ ;
+exponent      =  ("e" | "E") ("+" | "-")? digit+ ;
+imagnumber =  (floatnumber | intpart) ("j" | "J") ;
+
+NUMBER = `TOKEN { imagnumber | longinteger | integer | floatnumber };
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+file_input = (NEWLINE | stmt)* ;
+
+single_input = NEWLINE | simple_stmt | compound_stmt NEWLINE ;
+
+eval_input = testlist NEWLINE* ;
+
+decorator = `TOKEN {"@"} dotted_name ( '(' (arglist)? ')' )? NEWLINE ;
+
+decorators = decorator+ ;
+
+decorated = decorators (classdef | funcdef) ;
+
+funcdef = `TOKEN {"def"} NAME parameters `TOKEN {":"} suite ;
+
+parameters = '(' (varargslist)? ')' ;
+
+varargslist = ((fpdef (`TOKEN {"="} test)? `TOKEN {","})*
+              (`TOKEN {"*"} NAME (`TOKEN {","} `TOKEN {"**"} NAME)? | `TOKEN {"**"} NAME) |
+              fpdef (`TOKEN {"="} test)? (`TOKEN {","} fpdef (`TOKEN {"="} test)?)* (`TOKEN {","})?) ;
+
+fpdef = NAME | '(' fplist ')' ;
+
+fplist = fpdef (`TOKEN {","} fpdef)* (`TOKEN {","})? ;
+
+stmt = simple_stmt | compound_stmt ;
+
+simple_stmt = small_stmt (`TOKEN {";"} small_stmt)* (`TOKEN {";"})? NEWLINE ;
+
+small_stmt = (expr_stmt | print_stmt  | del_stmt | pass_stmt | flow_stmt |
+             import_stmt | global_stmt | exec_stmt | assert_stmt) ;
+
+expr_stmt = testlist (augassign (yield_expr|testlist) |
+                     (`TOKEN {"="} (yield_expr|testlist))*) ;
+
+augassign = (`TOKEN {"+="} | `TOKEN {"-="} | `TOKEN {"*="} | `TOKEN {"/="} | `TOKEN {"%="} | `TOKEN {"&="} | `TOKEN {"|="} | `TOKEN {"^="} |
+            `TOKEN {"<<="} | `TOKEN {">>="} | `TOKEN {"**="} | `TOKEN {"//="}) ;
+
+print_stmt =  `TOKEN {"print"} ( ( test (`TOKEN {","} test)* (`TOKEN {","})? )? |
+                      `TOKEN {">>"} test ( (`TOKEN {","} test)+ (`TOKEN {","})? )? ) ;
+
+del_stmt = `TOKEN {"del"} exprlist ;
+
+pass_stmt = `TOKEN {"pass"} ;
+
+flow_stmt = break_stmt | continue_stmt | return_stmt | raise_stmt | yield_stmt ;
+
+break_stmt = `TOKEN {"break"} ;
+
+continue_stmt = `TOKEN {"continue"} ;
+
+return_stmt = `TOKEN {"return"} (testlist)? ;
+
+yield_stmt = yield_expr ;
+
+raise_stmt = `TOKEN {"raise"} (test (`TOKEN {","} test (`TOKEN {","} test)?)?)? ;
+
+import_stmt = import_name | import_from ;
+
+import_name = `TOKEN {"import"} dotted_as_names ;
+
+import_from = (`TOKEN {"from"} (`TOKEN {"."}* !("import" !(letter | digit | "_")) dotted_name | `TOKEN {"."}+)
+              `TOKEN {"import"} (`TOKEN {"*"} | '(' import_as_names ')' | import_as_names)) ;
+
+import_as_name = NAME (`TOKEN {"as"} NAME)? ;
+
+dotted_as_name = dotted_name (`TOKEN {"as"} NAME)? ;
+
+import_as_names = import_as_name (`TOKEN {","} import_as_name)* (`TOKEN {","})? ;
+
+dotted_as_names = dotted_as_name (`TOKEN {","} dotted_as_name)* ;
+
+dotted_name = NAME (`TOKEN {"."} NAME)* ;
+
+global_stmt = `TOKEN {"global"} NAME (`TOKEN {","} NAME)* ;
+
+exec_stmt = `TOKEN {"exec"} expr (`TOKEN {"in"} test (`TOKEN {","} test)?)? ;
+
+assert_stmt = `TOKEN {"assert"} test (`TOKEN {","} test)? ;
+
+compound_stmt = if_stmt | while_stmt | for_stmt | try_stmt | with_stmt | funcdef | classdef | decorated ;
+
+if_stmt = `TOKEN {"if"} test `TOKEN {":"} suite (`TOKEN {"elif"} test `TOKEN {":"} suite)* (`TOKEN {"else"} `TOKEN {":"} suite)? ;
+
+while_stmt = `TOKEN {"while"} test `TOKEN {":"} suite (`TOKEN {"else"} `TOKEN {":"} suite)? ;
+
+for_stmt = `TOKEN {"for"} exprlist `TOKEN {"in"} testlist `TOKEN {":"} suite (`TOKEN {"else"} `TOKEN {":"} suite)? ;
+
+try_stmt = (`TOKEN {"try"} `TOKEN {":"} suite
+           ((except_clause `TOKEN {":"} suite)+
+            (`TOKEN {"else"} `TOKEN {":"} suite)?
+            (`TOKEN {"finally"} `TOKEN {":"} suite)? |
+           `TOKEN {"finally"} `TOKEN {":"} suite)) ;
+
+with_stmt = `TOKEN {"with"} with_item (`TOKEN {","} with_item)*  `TOKEN {":"} suite ;
+
+with_item = test (`TOKEN {"as"} expr)? ;
+
+except_clause = `TOKEN {"except"} (test ((`TOKEN {"as"} | `TOKEN {","}) test)?)? ;
+
+suite = simple_stmt | NEWLINE INDENT stmt+ DEDENT ;
+
+testlist_safe = old_test ((`TOKEN {","} old_test)+ (`TOKEN {","})?)? ;
+
+old_test = or_test | old_lambdef ;
+
+old_lambdef = `TOKEN {"lambda"} (varargslist)? `TOKEN {":"} old_test ;
+
+test = or_test (`TOKEN {"if"} or_test `TOKEN {"else"} test)? | lambdef ;
+
+or_test = and_test (`TOKEN {"or"} and_test)* ;
+
+and_test = not_test (`TOKEN {"and"} not_test)* ;
+
+not_test = `TOKEN {"not"} not_test | comparison ;
+
+comparison = expr (comp_op expr)* ;
+
+comp_op = `TOKEN {"<"}|`TOKEN {">"}|`TOKEN {"=="}|`TOKEN {">="}|`TOKEN {"<="}|`TOKEN {"<>"}|`TOKEN {"!="}|`TOKEN {"in"}|`TOKEN {"not"} `TOKEN {"in"}|`TOKEN {"is"}|`TOKEN {"is"} `TOKEN {"not"} ;
+
+expr = xor_expr (`TOKEN {"|"} xor_expr)* ;
+
+xor_expr = and_expr (`TOKEN {"^"} and_expr)* ;
+
+and_expr = shift_expr (`TOKEN {"&"} shift_expr)* ;
+
+shift_expr = arith_expr ((`TOKEN {"<<"}|`TOKEN {">>"}) arith_expr)* ;
+
+arith_expr = term ((`TOKEN {"+"}|`TOKEN {"-"}) term)* ;
+
+term = factor ((`TOKEN {"*"}|`TOKEN {"/"}|`TOKEN {"%"}|`TOKEN {"//"}) factor)* ;
+
+factor = (`TOKEN {"+"}|`TOKEN {"-"}|`TOKEN {"~"}) factor | power ;
+
+power = atom trailer* (`TOKEN {"**"} factor)? ;
+
+atom = ('(' (yield_expr|testlist_comp)? ')' |
+       '[' (listmaker)? ']' |
+       '{' (dictorsetmaker)? '}' |
+       `TOKEN {"`"} testlist1 `TOKEN {"`"} |
+       NAME | NUMBER | STRING+) ;
+
+listmaker = test ( list_for | (`TOKEN {","} test)* (`TOKEN {","})? ) ;
+
+testlist_comp = test ( comp_for | (`TOKEN {","} test)* (`TOKEN {","})? ) ;
+
+lambdef = `TOKEN {"lambda"} (varargslist)? `TOKEN {":"} test ;
+
+trailer = '(' (arglist)? ')' | '[' subscriptlist ']' | `TOKEN {"."} NAME ;
+
+subscriptlist = subscript (`TOKEN {","} subscript)* (`TOKEN {","})? ;
+
+subscript = `TOKEN {"."} `TOKEN {"."} `TOKEN {"."} | test | (test)? `TOKEN {":"} (test)? (sliceop)? ;
+
+sliceop = `TOKEN {":"} (test)? ;
+
+exprlist = expr (`TOKEN {","} expr)* (`TOKEN {","})? ;
+
+testlist = test (`TOKEN {","} test)* (`TOKEN {","})? ;
+
+dictorsetmaker = ( (test `TOKEN {":"} test (comp_for | (`TOKEN {","} test `TOKEN {":"} test)* (`TOKEN {","})?)) |
+                  (test (comp_for | (`TOKEN {","} test)* (`TOKEN {","})?)) ) ;
+
+classdef = `TOKEN {"class"} NAME ('(' (testlist)? ')')? `TOKEN {":"} suite ;
+
+arglist = (argument `TOKEN {","})* (argument
+                         |`TOKEN {"*"} test (`TOKEN {","} argument)* (`TOKEN {","} `TOKEN {"**"} test)?
+                         |`TOKEN {"**"} test)? ;
+
+argument = test (comp_for)? | test `TOKEN {"="} test ;
+
+list_iter = list_for | list_if ;
+
+list_for = `TOKEN {"for"} exprlist `TOKEN {"in"} testlist_safe (list_iter)? ;
+
+list_if = `TOKEN {"if"} old_test (list_iter)? ;
+
+comp_iter = comp_for | comp_if ;
+
+comp_for = `TOKEN {"for"} exprlist `TOKEN {"in"} or_test (comp_iter)? ;
+
+comp_if = `TOKEN {"if"} old_test (comp_iter)? ;
+
+testlist1 = test (`TOKEN {","} test)* ;
+
+yield_expr = `TOKEN {"yield"} (testlist)? ;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// The IntelliJ-compatible regexes used to convert from [X] to (X)?
+// \[([^\[]*?)\]
+// ($1)?

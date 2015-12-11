@@ -1,0 +1,17 @@
+Root = Statement* ;
+Identifier = %([a-z]+) ;
+Expression = `expr {
+    @+_left_assoc
+    -> Expression %"*" Expression
+    -> Expression %"/" Expression
+    @+_left_assoc
+    -> Expression %"+" Expression
+    -> Expression %"-" Expression
+    @+
+    -> Identifier
+    -> %([0-9]+)
+    -> drop(%"(" Expression %")")
+};
+Assignment = Identifier %"=" Expression %";" ;
+Print = %"print" Identifier %";" ;
+Statement = Assignment / Print ;

@@ -1,0 +1,41 @@
+struct TryStructSyntax
+{
+    int x;
+    TryStructSyntax ** y;
+}
+
+fun TryStructSyntax tryFunctionSyntax(TryStructSyntax * a, int b)
+{
+    int x = 1;
+    TryStructSyntax tss;
+    tss.x = 2;
+    x * tss.x;
+    return aFunction(x * x, tss.y, &tss);
+}
+
+fun int Point(int x, int y)
+{
+    return x + y;
+}
+
+fun int nonAmbiguous(int x, int y)
+{
+    int Point = 1337;
+    int foo = 42;
+    Point * foo;
+    return Point(x, y);
+}
+
+struct Point
+{
+    int x;
+    int y;
+}
+
+fun Point ambiguous(int x, int y)
+{
+    int Point = 1337;
+    int foo = 42;
+    Point * foo;
+    return Point(x, y);
+}

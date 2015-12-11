@@ -5,10 +5,7 @@ import com.norswap.util.Array;
 import com.norswap.util.Strings;
 import com.norswap.util.graph.NodeState;
 import com.norswap.util.graph.Slot;
-
 import java.util.function.Consumer;
-
-import static com.norswap.autumn.parsing.ParsingExpressionFlags.PEF_UNARY_INVISIBLE;
 
 /**
  * Prints a parsing expression as a tree.
@@ -50,30 +47,17 @@ public final class Printer extends ParsingExpressionVisitor
     {
         ParsingExpression pe = slot.initial;
 
-        // PEF_UNARY_INVISIBLE is set
-        if ((pe.flags & PEF_UNARY_INVISIBLE) != 0)
-        {
+        if (!pe.isPrintable())
             return;
-        }
 
         String name = pe.name;
         String data = pe.ownDataString();
 
         sink.accept(Strings.times(depth, "-|"));
-        sink.accept(pe.getClass().getSimpleName());
-        sink.accept(" (");
-        sink.accept(nameOrHashCode(pe));
-        sink.accept(")");
-
-        if (!data.isEmpty())
-        {
-            sink.accept(" [" + data + "]");
-        }
+        sink.accept(pe.toStringOneLine());
 
         if (!stack.isEmpty())
-        {
             appendChildData();
-        }
 
         if (name != null && cutoffAtNames && !(depth == 0 && !cutoffAtOwnName))
         {
@@ -122,14 +106,12 @@ public final class Printer extends ParsingExpressionVisitor
     {
         ParsingExpression pe = slot.initial;
 
-        // PEF_UNARY_INVISIBLE is set
-        if ((pe.flags & PEF_UNARY_INVISIBLE) != 0)
+        if (pe.isPrintable())
         {
             stack.pop();
             indices.pop();
+            -- depth;
         }
-
-        -- depth;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -150,9 +132,7 @@ public final class Printer extends ParsingExpressionVisitor
         String childData = stack.peek().childDataString(indices.peek());
 
         if (!childData.isEmpty())
-        {
             sink.accept(" [" + childData + "]");
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

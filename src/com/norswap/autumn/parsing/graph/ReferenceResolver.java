@@ -3,11 +3,13 @@ package com.norswap.autumn.parsing.graph;
 import com.norswap.autumn.parsing.ParsingExpression;
 import com.norswap.autumn.parsing.expressions.Reference;
 import com.norswap.util.Array;
+import com.norswap.util.annotations.Retained;
 import com.norswap.util.graph.NodeState;
 import com.norswap.util.graph.Slot;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 /**
  * Resolves all resolvable references underneath the visited expression graph. Resolvable references
@@ -31,11 +33,31 @@ public final class ReferenceResolver extends ParsingExpressionVisitor
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private HashMap<String, ParsingExpression> named = new HashMap<>();
-
     private HashSet<Slot<ParsingExpression>> references = new HashSet<>();
 
+    public final Map<String, ParsingExpression> named;
+
     public final HashSet<String> unresolved = new HashSet<>();
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public ReferenceResolver()
+    {
+        this.named = new HashMap<>();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Initialize the set of named values. The named expressions are also assumed to have already
+     * been visited by another reference resolver and so their descendants won't be checked. This is
+     * typically used when adding parsing expression to an existing grammar.
+     */
+    public ReferenceResolver(@Retained Map<String, ParsingExpression> named)
+    {
+        this.named = named;
+        named.values().forEach(this::markVisited);
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -45,9 +67,7 @@ public final class ReferenceResolver extends ParsingExpressionVisitor
         ParsingExpression initial = node.initial;
 
         if (initial.name != null)
-        {
             named.put(initial.name, initial);
-        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -58,9 +78,7 @@ public final class ReferenceResolver extends ParsingExpressionVisitor
         ParsingExpression initial = root.initial;
 
         if (initial instanceof Reference)
-        {
             references.add(root);
-        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -71,9 +89,7 @@ public final class ReferenceResolver extends ParsingExpressionVisitor
         ParsingExpression initial = child.initial;
 
         if (initial instanceof Reference)
-        {
             references.add(child);
-        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -82,7 +98,6 @@ public final class ReferenceResolver extends ParsingExpressionVisitor
     public void conclude()
     {
         super.conclude();
-        named = null;
         references = null;
     }
 
@@ -104,9 +119,7 @@ public final class ReferenceResolver extends ParsingExpressionVisitor
                 target = named.get(name);
 
                 if (++i > REFERENCE_CHAIN_LIMIT)
-                {
                     panic();
-                }
             }
             while (target != null && target instanceof Reference);
 

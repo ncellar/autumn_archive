@@ -1,164 +1,132 @@
 package com.norswap.autumn.parsing;
 
+import com.norswap.autumn.parsing.capture.DecorateWithAccessor;
+import com.norswap.autumn.parsing.capture.DecorateWithGroup;
+import com.norswap.autumn.parsing.capture.DecorateWithKind;
 import com.norswap.autumn.parsing.expressions.*;
-import com.norswap.autumn.parsing.expressions.ExpressionCluster.Group;
+import com.norswap.autumn.parsing.expressions.Capture;
+import com.norswap.autumn.parsing.capture.Decorate;
+import com.norswap.autumn.parsing.extensions.cluster.expressions.ExpressionCluster;
+import com.norswap.autumn.parsing.extensions.cluster.expressions.ExpressionCluster.Group;
 import com.norswap.autumn.parsing.expressions.Whitespace;
-import com.norswap.util.Array;
-import com.norswap.util.annotations.NonNull;
-
+import com.norswap.autumn.parsing.extensions.cluster.expressions.Filter;
+import com.norswap.autumn.parsing.extensions.cluster.expressions.WithMinPrecedence;
+import com.norswap.autumn.parsing.extensions.leftrec.LeftRecursive;
 import java.util.Arrays;
-
-import static com.norswap.autumn.parsing.ParsingExpressionFlags.*; // PEF_*
 
 public final class ParsingExpressionFactory
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    // CAPTURES
 
-    public static Any any()
+    public static Capture capture(Decorate[] decorations, ParsingExpression operand)
     {
-        return new Any();
+        return new Capture(true, false, operand, decorations);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture capture(ParsingExpression operand)
     {
-        return new Capture(operand, null, Array.empty(), PEF_CAPTURE);
+        return capture(new Decorate[0], operand);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static ParsingExpression capture(String name, ParsingExpression operand)
+    {
+        return capture($(accessor(name)), operand);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static Capture captureText(Decorate[] decorations, ParsingExpression operand)
+    {
+        return new Capture(true, true, operand, decorations);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     public static Capture captureText(ParsingExpression operand)
     {
-        return new Capture(operand, null, Array.empty(), PEF_CAPTURE | PEF_CAPTURE_TEXT);
+        return captureText(new Decorate[0], operand);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture capture(boolean captureText, ParsingExpression operand)
+    public static ParsingExpression captureText(String name, ParsingExpression operand)
     {
-        return new Capture(operand, null, Array.empty(),
-            PEF_CAPTURE | (captureText ? PEF_CAPTURE_TEXT : 0));
+        return captureText($(accessor(name)), operand);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture capture(String accessor, ParsingExpression operand)
+    public static Capture set(Decorate[] decorations, ParsingExpression operand)
     {
-        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE);
+        return new Capture(false, false, operand, decorations);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture marker(String accessor)
+    public static Capture marker(Decorate[] decorations)
     {
-        return new Capture(null, accessor, Array.empty(), PEF_CAPTURE);
+        return capture(decorations, new Success());
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture captureText(String accessor, ParsingExpression operand)
+    public static Decorate[] $(Decorate... decorations)
     {
-        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE | PEF_CAPTURE_TEXT);
+        return decorations;
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture captureGrouped(String accessor, ParsingExpression operand)
+    public static Decorate kind(String kind)
     {
-        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE | PEF_CAPTURE_GROUPED);
+        return new DecorateWithKind(kind);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture captureTextGrouped(String accessor, ParsingExpression operand)
+    public static Decorate accessor(String accessor)
     {
-        return new Capture(operand, accessor, Array.empty(),
-            PEF_CAPTURE | PEF_CAPTURE_TEXT | PEF_CAPTURE_GROUPED);
+        return new DecorateWithAccessor(accessor);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture capture(String accessor, @NonNull Array<String> tags, ParsingExpression operand)
+    public static Decorate group(String group)
     {
-        return new Capture(operand, accessor, tags, PEF_CAPTURE);
+        return new DecorateWithGroup(group);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Capture captureText(String accessor, Array<String> tags, ParsingExpression operand)
+    public static ParsingExpression kind(String name, ParsingExpression operand)
     {
-        return new Capture(operand, accessor, tags, PEF_CAPTURE | PEF_CAPTURE_TEXT);
+        return set($(kind(name)), operand);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    public static @NonNull Array<String> tags(String... tags)
+    public static ParsingExpression accessor(String name, ParsingExpression operand)
     {
-        return new Array<>(tags);
+        return set($(accessor(name)), operand);
     }
 
     // ---------------------------------------------------------------------------------------------
 
-    private static void checkForAccessor(Capture c, String newAccessor)
+    public static ParsingExpression group(String name, ParsingExpression operand)
     {
-        if (c.accessor != null)
-        {
-            throw new RuntimeException(
-                "Trying to override accessor \"" + c.accessor
-                    + "\" with accessor \"" + newAccessor + "\".");
-        }
+        return set($(group(name)), operand);
     }
 
-    // ---------------------------------------------------------------------------------------------
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static Capture accessor$(String accessor, ParsingExpression operand)
+    public static Any any()
     {
-        if (operand instanceof Capture)
-        {
-            Capture c2 = (Capture) operand;
-            checkForAccessor(c2, accessor);
-            c2.accessor = accessor;
-            return c2;
-        }
-
-        return new Capture(operand, accessor, Array.empty(), 0);
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    public static Capture tag$(String tag, ParsingExpression operand)
-    {
-        if (operand instanceof Capture)
-        {
-            Capture c2 = (Capture) operand;
-
-            if (c2.tags == Array.<String>empty())
-            {
-                c2.tags = new Array<>();
-            }
-
-            c2.tags.add(tag);
-            return c2;
-        }
-
-        return new Capture(operand, null, new Array<>(tag), 0);
-    }
-
-    // ---------------------------------------------------------------------------------------------
-
-    public static Capture group$(String accessor, ParsingExpression operand)
-    {
-        if (operand instanceof Capture)
-        {
-            Capture c2 = (Capture) operand;
-            checkForAccessor(c2, accessor);
-            c2.accessor = accessor;
-            c2.flags |= PEF_CAPTURE_GROUPED;
-            return c2;
-        }
-
-        return new Capture(operand, accessor, Array.empty(), PEF_CAPTURE_GROUPED);
+        return new Any();
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -291,16 +259,37 @@ public final class ParsingExpressionFactory
 
     // ---------------------------------------------------------------------------------------------
 
-    public static Filter filter(
-        ParsingExpression[] allowed,
-        ParsingExpression[] forbidden,
-        ParsingExpression cluster)
+    public static ParsingExpression filter(
+        ParsingExpression pe,
+        String[] allowed,
+        String[] forbidden)
     {
-        Filter filter = new Filter();
-        filter.allowed = allowed != null ? allowed : new ParsingExpression[0];
-        filter.forbidden = forbidden != null ? forbidden : new ParsingExpression[0];
-        filter.operand = cluster;
-        return filter;
+        if ((allowed == null   || allowed.length == 0)
+        &&  (forbidden == null || forbidden.length == 0))
+        {
+            return pe;
+        }
+
+        return new Filter(
+            pe,
+            allowed != null ? allowed : EMPTY_STRINGS,
+            forbidden != null ? forbidden : EMPTY_STRINGS);
+    }
+
+    private static final String[] EMPTY_STRINGS = new String[0];
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static ParsingExpression allow(ParsingExpression pe, String... allowed)
+    {
+        return filter(pe, allowed, null);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static ParsingExpression forbid(ParsingExpression pe, String... forbidden)
+    {
+        return filter(pe, null, forbidden);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -474,6 +463,13 @@ public final class ParsingExpressionFactory
 
     // ---------------------------------------------------------------------------------------------
 
+    public static Precedence precedence(int precedence, ParsingExpression... operands)
+    {
+        return precedence(precedence, sequence(operands));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
     public static Reference reference(String target)
     {
         Reference result = new Reference();
@@ -538,6 +534,20 @@ public final class ParsingExpressionFactory
         return zeroMore(sequence(seq));
     }
 
+    // ---------------------------------------------------------------------------------------------
+
+    public static Success succeed()
+    {
+        return new Success();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static Failure fail()
+    {
+        return new Failure();
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     public static ParsingExpression notCharSet(String chars)
@@ -575,10 +585,38 @@ public final class ParsingExpressionFactory
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    public static ParsingExpression namekind(String string, ParsingExpression pe)
+    {
+        return named$(string, capture($(kind(string)), pe));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static ParsingExpression namekindText(String string, ParsingExpression pe)
+    {
+        return named$(string, captureText($(kind(string)), pe));
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     public static ParsingExpression named$(String name, ParsingExpression pe)
     {
         pe.name = name;
         return pe;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static Debug debug(String id)
+    {
+        return new Debug(id);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+
+    public static Not fdebug(String id)
+    {
+        return not(new Debug(id));
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

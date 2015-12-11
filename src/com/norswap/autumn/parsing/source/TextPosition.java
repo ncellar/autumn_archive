@@ -11,15 +11,17 @@ public final class TextPosition
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public final int position;
+    public final int offset;
     public final int line;
     public final int column;
+    public final Source source;
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public TextPosition(int position, int line, int column)
+    public TextPosition(Source source, int offset, int line, int column)
     {
-        this.position = position;
+        this.source = source;
+        this.offset = offset;
         this.line = line;
         this.column = column;
     }
@@ -28,7 +30,7 @@ public final class TextPosition
 
     public String toString()
     {
-        return "line " + line + ", column " + column;
+        return String.format("line %d, column %d in %s", line, column + source.columnStart, source);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
