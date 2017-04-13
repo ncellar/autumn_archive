@@ -1,24 +1,8 @@
 # The Autumn Parsing Library
 
-Soon, this repository will hold the new (third) version of the Autum parsing
-library. The new version should run considerably faster than the previous
-version.
+## Autumn has moved to https://github.com/norswap/whimsy
 
-Autumn is developed as part of the [Whimsy] compiler framework.
-The newest developments will land in the Whimsy repository first.
-
-[whimsy]: https://github.com/norswap/whimsy
-
-## Presentation
-
-Autumn is a parsing library written in the [Kotlin] programming language.
-
-One of its specificities is its ability to parse context-sensitive languages
-through the introduction of *parse state*, which may be mutated during the parse.
-
-[Kotlin]: https://kotlinlang.org/
-
-## History
+## Legacy Versions
 
 - **v1** - https://github.com/ncellar/autumn_v1
 
@@ -43,5 +27,3 @@ It was the object of
 the SLE (Software Language Engineering) in 2016.
 
 [SLE2016]: http://norswap.com/pubs/sle2016.pdf
-
-- **v3** - soon
