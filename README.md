@@ -37,3 +37,19 @@ v3 features two significant changes: first the context-sensitive parsing mechani
 undoable changes instead of relying on state snapshots. Second, the framework uses Kotlin's `inline`
 keyword pervasively in order to avoid megamorphic call sites overheads, and enable additional
 optimization. This works well in practice, and performance are greatly improved.
+
+## Current Version
+
+- **v4** - https://github.com/norswap/autumn
+
+The current (and hopefully final major revision) of Autumn.
+
+This version underpins my 2019 PhD thesis.
+
+This is a full rewrite in Java. It keeps v3's way of handling the context, but reverts back to using
+a graph of parser objects to represent a grammar — the reason being that these graphs can be
+traversed by walkers and visitors to achieve all kind of things.
+
+It adds many many useful features, and performance are on par with v3 despite the lack of inlining.
+The best Autumn has to offer!
+
