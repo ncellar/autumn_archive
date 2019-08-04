@@ -1,6 +1,6 @@
 # The Autumn Parsing Library
 
-## Autumn has moved to https://github.com/norswap/whimsy
+## Autumn has moved to https://github.com/norswap/autumn
 
 ## Legacy Versions
 
@@ -27,3 +27,13 @@ It was the object of
 the SLE (Software Language Engineering) in 2016.
 
 [SLE2016]: http://norswap.com/pubs/sle2016.pdf
+
+- **v3** - https://github.com/ncellar/whimsy
+
+v3  is a rewrite of v2, still in Kotlin. It was part of the Whimsy compiler framework project, whose
+other component (a reactive middle-end compiler library) never fuly materialized.
+
+v3 features two significant changes: first the context-sensitive parsing mechanism now uses a log of
+undoable changes instead of relying on state snapshots. Second, the framework uses Kotlin's `inline`
+keyword pervasively in order to avoid megamorphic call sites overheads, and enable additional
+optimization. This works well in practice, and performance are greatly improved.
